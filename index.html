@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Columna Estratigráfica — SERNAGEOMIN</title>
+  <link rel="stylesheet" href="css/estilo.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <h2>Editor de Columna Estratigráfica SERNAGEOMIN</h2>
+  <div class="instrucciones">
+    Personaliza estratos, elige tipo de borde inferior, añade símbolos, exporta o guarda tu proyecto.<br>
+    Código desarrollado por Felipe Carrasco Rieloff — felipe.carrasco@sernageomin.cl
+  </div>
+
+  <!-- Acciones de proyecto -->
+  <div class="acciones-proyecto">
+    <!-- Dropdown de exportación -->
+    <div class="dropdown">
+      <button class="exportar">💾 Exportar</button>
+      <div class="dropdown-content">
+        <div class="calidad-seccion">Exageración:</div>
+        <div>
+          <select id="selectCalidadExportacion">
+            <option value="1">1x (Normal)</option>
+            <option value="2" selected>2x (Alta)</option>
+            <option value="3">3x</option>
+            <option value="4">4x (Máxima)</option>
+          </select>
+        </div>
+        <hr>
+        <button id="btnExportarPNG">🖼️ PNG</button>
+        <button id="btnExportarJPG">🌅 JPG</button>
+        <button id="btnExportarSVG">🎨 SVG</button>
+        <button id="btnExportarPDF">📄 PDF</button>
+      </div>
+    </div>
+
+    <button class="guardar" id="btnGuardar">💾 Guardar Proyecto</button>
+    <button class="cargar" id="btnCargar">📂 Cargar Proyecto</button>
+    <button class="guardar" id="btnExportarProyecto">📤 Exportar Proyecto (.json)</button>
+    <button class="cargar" id="btnImportarProyecto">📥 Importar Proyecto (.json)</button>
+    <input type="file" id="inputImportarProyecto" accept=".json" style="display: none;">
+    <button id="btnToggleLayout">↔️ Cambiar diseño</button>
+    <button id="btnMostrarPopup">🖼️ Ver resultado final</button>
+  </div>
+
+  <!-- Pop-up y overlay -->
+  <div class="overlay" id="overlay"></div>
+  <div class="popup" id="popup">
+    <span class="close-btn" onclick="cerrarPopup()">&times;</span>
+    <h2>Vista Completa de la Columna Estratigráfica</h2>
+    <canvas id="popupCanvas"></canvas>
+    <button onclick="cerrarPopup()">Cerrar</button>
+  </div>
+
+  <!-- Controles globales -->
+  <div class="controles-globales">
+    <label>Escala: 1 m = </label>
+    <input type="number" id="pixelesPorMetro" value="100" min="10" max="200" step="1"> px
+    <button id="btnActualizarEscala">Actualizar Escala</button>
+  </div>
+
+  <button id="btnAgregarEstrato">+ Añadir Nuevo Estrato</button>
+  <div id="panelesEstratos"></div>
+
+  <div class="canvas-container" id="canvasContainer">
+    <canvas id="canvas" width="900" height="800"></canvas>
+  </div>
+
+  <!-- Librerías externas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Módulos JS (en orden de dependencia) -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
