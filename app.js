@@ -608,30 +608,63 @@ function calcularPosicionesEstratos() {
 function dibujarEscalaVertical(profundidadTotal, escala = 1) {
   const inicioY = estratos.length > 0 ? estratos[0].bottomY : 100;
   const finY = estratos.length > 0 ? estratos[estratos.length - 1].topY : 800;
-  ctx.strokeStyle = "#000";
-  ctx.fillStyle = "#000";
-  ctx.font = `${12 * escala}px Arial`; // <-- ESCALAR FUENTE
-  ctx.textAlign = "right";
+
+  ctx.strokeStyle = '#000';
+  ctx.fillStyle = '#000';
+  ctx.font = `${12 * escala}px Arial`;
+  ctx.textAlign = 'right';
+  ctx.lineWidth = 1 * escala;
+
+  // Línea principal
   ctx.beginPath();
   ctx.moveTo(IZQUIERDA_X - 20, finY);
   ctx.lineTo(IZQUIERDA_X - 20, inicioY);
   ctx.stroke();
-  ctx.lineWidth = 1 * escala; // <-- ESCALAR GROSOR DE LÍNEA
 
   const metrosTotales = profundidadTotal / PIXELES_POR_METRO;
-  const intervaloMetros =
-    metrosTotales > 100 ? 10 : metrosTotales > 20 ? 10 : 1;
 
-  for (let metros = 0; metros <= metrosTotales; metros += intervaloMetros) {
-    const y = inicioY - metros * PIXELES_POR_METRO;
-    ctx.beginPath();
-    ctx.moveTo(IZQUIERDA_X - 25, y);
-    ctx.lineTo(IZQUIERDA_X - 15, y);
-    ctx.stroke();
-    ctx.fillText(`${metros} m`, IZQUIERDA_X - 30 * escala, y + 4 * escala); // <-- ESCALAR POSICIÓN DE TEXTO
+  // 👉 Detección automática de escala de detalle
+  const escalaDetalle = PIXELES_POR_METRO >= 500;
+
+  if (escalaDetalle) {
+    // ===== ESCALA EN CENTÍMETROS =====
+    const intervaloCm = 10; // cada 10 cm
+    const pixelesPorCm = PIXELES_POR_METRO / 100;
+    const totalCm = metrosTotales * 100;
+
+    for (let cm = 0; cm <= totalCm; cm += intervaloCm) {
+      const y = inicioY - (cm * pixelesPorCm);
+
+      ctx.beginPath();
+      ctx.moveTo(IZQUIERDA_X - 24, y);
+      ctx.lineTo(IZQUIERDA_X - 16, y);
+      ctx.stroke();
+
+      // Etiqueta solo cada 50 cm para no saturar
+      if (cm % 10 === 0) {
+        ctx.fillText(`${cm} cm`, IZQUIERDA_X - 30 * escala, y + 4 * escala);
+      }
+    }
+
+  } else {
+    // ===== ESCALA EN METROS =====
+    const intervaloMetros = metrosTotales > 20 ? 5 : 1;
+
+    for (let m = 0; m <= metrosTotales; m += intervaloMetros) {
+      const y = inicioY - (m * PIXELES_POR_METRO);
+
+      ctx.beginPath();
+      ctx.moveTo(IZQUIERDA_X - 25, y);
+      ctx.lineTo(IZQUIERDA_X - 15, y);
+      ctx.stroke();
+
+      ctx.fillText(`${m} m`, IZQUIERDA_X - 30 * escala, y + 4 * escala);
+    }
   }
-  ctx.textAlign = "start";
+
+  ctx.textAlign = 'start';
 }
+
 
 // ================================
 // DIBUJAR ESCALA HORIZONTAL — ¡CORREGIDO!
