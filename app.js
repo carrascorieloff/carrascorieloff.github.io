@@ -1,10 +1,15 @@
+//RRRRRRRRRRRRRRRRRRR
+
+// Función para mostrar el pop-up y copiar el contenido del canvas
 // Función para mostrar el pop-up y copiar el contenido del canvas
 function mostrarPopup() {
   const popup = document.getElementById("popup");
   const overlay = document.getElementById("overlay");
   const popupCanvas = document.getElementById("popupCanvas");
   const popupCtx = popupCanvas.getContext("2d");
-
+  
+  popup.classList.add('active');
+  overlay.classList.add('active');
   // Mostrar el pop-up y el overlay
   popup.style.display = "block";
   overlay.style.display = "block";
@@ -14,14 +19,21 @@ function mostrarPopup() {
   popupCanvas.height = canvas.height;
 
   // ✅ Redibujar SIN puntos de control en el canvas principal primero
-  dibujar(false); // <-- ¡Aquí es donde se ocultan los puntos!
+  dibujar(false);
 
   // Copiar el contenido del canvas principal al canvas del pop-up
   popupCtx.drawImage(canvas, 0, 0);
 
-  // ✅ Volver a dibujar CON puntos de control en el canvas principal
-  setTimeout(() => dibujar(true), 100);
+  // ✅ Inmediatamente volver a dibujar CON puntos (usando requestAnimationFrame)
+  requestAnimationFrame(() => {
+    dibujar(true);
+  });
 }
+
+document.getElementById("toggleGuias").addEventListener("change", function(e) {
+   mostrarGuiasVerticales = e.target.checked;
+   dibujar();
+ });
 
 // Función para cerrar el pop-up
 function cerrarPopup() {
@@ -640,7 +652,7 @@ function dibujarEscalaVertical(profundidadTotal, escala = 1) {
       ctx.lineTo(IZQUIERDA_X - 16, y);
       ctx.stroke();
 
-      // Etiqueta solo cada 50 cm para no saturar
+      // Etiqueta solo cada 10 cm para no saturar
       if (cm % 10 === 0) {
         ctx.fillText(`${cm} cm`, IZQUIERDA_X - 30 * escala, y + 4 * escala);
       }
@@ -665,6 +677,12 @@ function dibujarEscalaVertical(profundidadTotal, escala = 1) {
   ctx.textAlign = 'start';
 }
 
+
+
+document.getElementById("desplazamientoEscalaHorizontal").addEventListener("input", function () {
+  DESPLAZAMIENTO_ESCALA_HORIZONTAL = parseInt(this.value) || 0;
+  dibujar();
+});
 
 // ================================
 // DIBUJAR ESCALA HORIZONTAL — ¡CORREGIDO!
@@ -720,9 +738,9 @@ function dibujar(mostrarPuntos = true, escala = 1) {
 
   // ✅ DIBUJAR GUÍAS VERTICALES (si están activadas)
   if (mostrarGuiasVerticales) {
-    ctx.strokeStyle = "rgba(0, 100, 200, 0.3)";
+    ctx.strokeStyle = "#00FFFF";
     ctx.lineWidth = 1 * escala;
-    ctx.setLineDash([5, 5]); // Línea punteada
+    //ctx.setLineDash([10, 5]); // Línea punteada
 
     posicionesXGuías.forEach((x) => {
       ctx.beginPath();
@@ -1577,14 +1595,24 @@ function dibujar(mostrarPuntos = true, escala = 1) {
       ctx.stroke();
     }
 
-    // Dibujar etiqueta de estrato — ¡ESCALAR FUENTE!
-    ctx.fillStyle = "#000";
-    ctx.font = `${12 * escala}px Arial`; // <-- ¡ESCALAR FUENTE!
-    ctx.fillText(
-      estrato.nombre,
-      IZQUIERDA_X - 100 * escala,
-      estrato.topY + 50 * escala
-    );
+    // Dibujar etiqueta de estrato
+      ctx.fillStyle = "#000";
+      ctx.font = `${12 * escala}px Arial`;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+
+      // Punto medio vertical del estrato
+      const puntoMedioY = estrato.topY + (estrato.alto / 2);
+
+      // Mantener la posición X original (100px a la izquierda)
+      const posX = IZQUIERDA_X - 100 * escala;
+
+      // Dibujar centrado verticalmente
+      ctx.fillText(estrato.nombre, posX, puntoMedioY);
+
+      // Restaurar alineaciones
+      ctx.textAlign = "start";
+      ctx.textBaseline = "alphabetic";
   });
 
   // ✅ DIBUJAR GUÍAS VERTICALES AL FINAL → ¡POR ENCIMA DE TODO!
@@ -1647,7 +1675,7 @@ document
   .getElementById("btnExportarPNG")
   .addEventListener("click", function () {
     const escala =
-      parseInt(document.getElementById("selectCalidadExportacion").value) || 2;
+      1;
 
     exportarConCalidad(escala, "png", function () {
       const pendientes = Object.keys(tramasSVG).filter((key) => {
@@ -1675,41 +1703,70 @@ document
     });
   });
 // EXPORTAR PROYECTO COMO ARCHIVO JSON
-document
-  .getElementById("btnExportarProyecto")
-  .addEventListener("click", function () {
-    const nombre = prompt("Nombre del proyecto (sin extensión):", "MiColumna");
-    if (!nombre) return;
+// EXPORTAR PROYECTO COMO ARCHIVO JSON - VERSIÓN CORREGIDA
+// IMPORTAR PROYECTO DESDE ARCHIVO JSON - VERSIÓN CORREGIDA
+document.getElementById("inputImportarProyecto").addEventListener("change", function (e) {
+  const file = e.target.files[0];
+  if (!file) return;
 
-    const proyecto = {
-      version: "1.0",
-      pixelesPorMetro: PIXELES_POR_METRO,
-      estratos: estratos.map((e) => ({
-        nombre: e.nombre,
-        alto: e.alto,
-        ancho: e.ancho,
-        color: e.color,
-        trama: e.trama,
-        tamanoTrama: e.tamanoTrama,
-        tipoBordeSuperior: e.tipoBordeSuperior,
-        puntoControl: {
-          proporcionX: e.puntoControl.proporcionX,
-          posicionManual: e.puntoControl.posicionManual,
-        },
-        simbolosDerecha: e.simbolosDerecha,
-      })),
-    };
+  const reader = new FileReader();
+  reader.onload = function (event) {
+    try {
+      const proyecto = JSON.parse(event.target.result);
 
-    const blob = new Blob([JSON.stringify(proyecto, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${nombre}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-  });
+      // Validar estructura mínima
+      if (!proyecto.estratos || !Array.isArray(proyecto.estratos)) {
+        throw new Error("Archivo inválido: no contiene estratos.");
+      }
+
+      // Restaurar datos
+      PIXELES_POR_METRO = proyecto.pixelesPorMetro || 100;
+      document.getElementById("pixelesPorMetro").value = PIXELES_POR_METRO;
+
+      // ✅ RECONSTRUIR ESTRATOS CON TODOS LOS DATOS DEL PUNTO DE CONTROL
+      estratos = proyecto.estratos.map((e) => {
+        const estrato = new Estrato(
+          e.alto,
+          e.ancho,
+          e.color,
+          e.trama,
+          e.tamanoTrama,
+          "ninguno",
+          e.tipoBordeSuperior || "recto"
+        );
+        
+        estrato.nombre = e.nombre || "Estrato";
+        
+        // ✅ RESTAURAR TODAS LAS PROPIEDADES DEL PUNTO DE CONTROL
+        if (e.puntoControl) {
+          estrato.puntoControl.proporcionX = e.puntoControl.proporcionX ?? 1.0;
+          estrato.puntoControl.proporcionY = e.puntoControl.proporcionY ?? 0.5;
+          estrato.puntoControl.posicionManual = e.puntoControl.posicionManual ?? false;
+          estrato.puntoControl.x = e.puntoControl.x ?? (IZQUIERDA_X + estrato.ancho);
+          estrato.puntoControl.y = e.puntoControl.y ?? ((estrato.topY + estrato.bottomY) / 2);
+        }
+        
+        estrato.simbolosDerecha = e.simbolosDerecha || [];
+        return estrato;
+      });
+
+      // Reconstruir interfaz
+      panelesContainer.innerHTML = "";
+      estratos.forEach((_, i) => crearPanelEstrato(i));
+      dibujar();
+
+      mostrarNotificacion(`✅ Proyecto "${file.name}" cargado correctamente`, "success");
+    } catch (error) {
+      console.error("Error al importar:", error);
+      mostrarNotificacion(
+        "❌ Error al cargar el archivo. Asegúrate de que sea un JSON válido de columna estratigráfica.",
+        "error"
+      );
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = ""; // Reset para permitir recargar el mismo archivo
+});
 // IMPORTAR PROYECTO DESDE ARCHIVO JSON
 document
   .getElementById("btnImportarProyecto")
@@ -1772,21 +1829,40 @@ document
     e.target.value = ""; // Reset para permitir recargar el mismo archivo
   });
 // ================================
-// EXPORTAR COMO JPEG — ¡AHORA CON OPCIÓN DE CALIDAD!
+// EXPORTAR JPG CON FONDO BLANCO - VERSIÓN SEGURA
 // ================================
-document
-  .getElementById("btnExportarJPG")
-  .addEventListener("click", function () {
-    const escala =
-      parseInt(document.getElementById("selectCalidadExportacion").value) || 2;
-
-    exportarConCalidad(escala, "jpg", function () {
-      const link = document.createElement("a");
-      link.download = `columna_estratigrafica_${escala}x.jpg`;
-      link.href = canvas.toDataURL("image/jpeg", 0.95);
-      link.click();
-    });
-  });
+document.getElementById("btnExportarJPG").addEventListener("click", function () {
+  const escala = 1;
+  
+  // 1. Redibujar sin puntos temporalmente
+  dibujar(false);
+  
+  // 2. Crear canvas temporal con las dimensiones correctas
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = canvas.width * escala;
+  tempCanvas.height = canvas.height * escala;
+  const tempCtx = tempCanvas.getContext('2d');
+  
+  // 3. Rellenar con fondo blanco
+  tempCtx.fillStyle = "#FFFFFF";
+  tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+  
+  // 4. Copiar el contenido del canvas principal, escalado
+  tempCtx.drawImage(
+    canvas, 
+    0, 0, canvas.width, canvas.height,  // fuente
+    0, 0, tempCanvas.width, tempCanvas.height // destino (escalado)
+  );
+  
+  // 5. Exportar el canvas temporal
+  const link = document.createElement("a");
+  link.download = `columna_estratigrafica_${escala}x.jpg`;
+  link.href = tempCanvas.toDataURL("image/jpeg", 0.95);
+  link.click();
+  
+  // 6. Restaurar puntos en el canvas principal
+  setTimeout(() => dibujar(true), 100);
+});
 
 // ================================
 // EXPORTAR COMO SVG — SIN CAMBIOS (no se beneficia de la escala de esta manera)
@@ -1838,15 +1914,14 @@ document
 document
   .getElementById("btnExportarPDF")
   .addEventListener("click", function () {
-    const escala =
-      parseInt(document.getElementById("selectCalidadExportacion").value) || 2;
+    const escala = 1;
     exportarConCalidad(escala, "pdf", function () {
       const { jsPDF } = window.jspdf;
       // Crear PDF con orientación 'portrait' y tamaño personalizado basado en el canvas escalado
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "px",
-        format: [canvas.width * escala, canvas.height * escala],
+        format: [canvas.width , canvas.height*2 ],
       });
       // Añadir la imagen del canvas al PDF
       pdf.addImage(
@@ -1864,11 +1939,17 @@ document
 // ================================
 // GUARDAR PROYECTO
 // ================================
+// GUARDAR PROYECTO EN LOCALSTORAGE - VERSIÓN CORREGIDA
+// REEMPLAZAR la función existente del botón Guardar:
 document.getElementById("btnGuardar").addEventListener("click", function () {
   const nombre = prompt("Nombre del proyecto:", "Proyecto 1");
   if (!nombre) return;
+
   const proyecto = {
     pixelesPorMetro: PIXELES_POR_METRO,
+    fechaGuardado: new Date().toISOString(), // Fecha en formato ISO
+    fechaLegible: new Date().toLocaleString(), // Fecha legible para mostrar
+    version: "1.0",
     estratos: estratos.map((e) => ({
       nombre: e.nombre,
       alto: e.alto,
@@ -1880,65 +1961,466 @@ document.getElementById("btnGuardar").addEventListener("click", function () {
       tipoBordeSuperior: e.tipoBordeSuperior,
       puntoControl: {
         proporcionX: e.puntoControl.proporcionX,
+        proporcionY: e.puntoControl.proporcionY,
         posicionManual: e.puntoControl.posicionManual,
+        x: e.puntoControl.x,
+        y: e.puntoControl.y
       },
-      simbolosDerecha: e.simbolosDerecha, // ✅ Guardar símbolos de la derecha
+      simbolosDerecha: e.simbolosDerecha,
     })),
   };
+
   localStorage.setItem(`columna_${nombre}`, JSON.stringify(proyecto));
-  alert(`Proyecto "${nombre}" guardado!`);
+  mostrarNotificacion(`✅ Proyecto "${nombre}" guardado correctamente`, "success");
 });
 // ================================
 // CARGAR PROYECTO
 // ================================
 document.getElementById("btnCargar").addEventListener("click", function () {
+  mostrarModalProyectos();
+});
+
+// Función para mostrar el modal con lista de proyectos
+function mostrarModalProyectos() {
+  // Obtener proyectos del localStorage
   const proyectos = [];
+  const proyectosInfo = []; // Almacenar info adicional
+  
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key.startsWith("columna_")) {
-      proyectos.push(key.replace("columna_", ""));
+      const nombre = key.replace("columna_", "");
+      const data = localStorage.getItem(key);
+      try {
+        const proyecto = JSON.parse(data);
+        proyectos.push(nombre);
+        proyectosInfo.push({
+          nombre: nombre,
+          fecha: proyecto.fechaGuardado || new Date(0).toISOString(), // Fecha por defecto si no existe
+          fechaLegible: proyecto.fechaLegible || "Fecha desconocida",
+          estratos: proyecto.estratos?.length || 0,
+          pixelesPorMetro: proyecto.pixelesPorMetro || 100
+        });
+      } catch (e) {
+        proyectos.push(nombre);
+        proyectosInfo.push({
+          nombre: nombre,
+          fecha: new Date(0).toISOString(), // Fecha mínima para proyectos con error
+          fechaLegible: "Error al leer",
+          estratos: 0,
+          pixelesPorMetro: 100
+        });
+      }
     }
   }
-  if (proyectos.length === 0) {
-    alert("No hay proyectos guardados.");
-    return;
+  
+
+
+  // Función para ordenar la tabla de proyectos
+function ordenarTablaProyectos(criterio) {
+  const tbody = document.getElementById("tablaProyectos");
+  if (!tbody) return;
+  
+  const filas = Array.from(tbody.querySelectorAll("tr"));
+  
+  filas.sort((a, b) => {
+    const nombreA = a.getAttribute("data-nombre").toLowerCase();
+    const nombreB = b.getAttribute("data-nombre").toLowerCase();
+    const fechaA = new Date(a.getAttribute("data-fecha"));
+    const fechaB = new Date(b.getAttribute("data-fecha"));
+    const estratosA = parseInt(a.getAttribute("data-estratos"));
+    const estratosB = parseInt(b.getAttribute("data-estratos"));
+    
+    switch (criterio) {
+      case "nombre":
+        return nombreA.localeCompare(nombreB);
+      
+      case "fecha":
+        return fechaB - fechaA; // Más reciente primero
+      
+      case "estratos":
+        return estratosB - estratosA; // Más estratos primero
+      
+      default:
+        return 0;
+    }
+  });
+  
+  // Reordenar filas en la tabla
+  filas.forEach(fila => tbody.appendChild(fila));
+}
+  // Crear o actualizar el modal
+  let modal = document.getElementById("modalProyectos");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "modalProyectos";
+    modal.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+      z-index: 1000;
+      min-width: 500px;
+      max-width: 700px;
+      max-height: 80vh;
+      overflow-y: auto;
+      display: none;
+    `;
+    
+    // Overlay para cerrar al hacer clic fuera
+    const overlay = document.createElement("div");
+    overlay.id = "modalOverlay";
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+      display: none;
+    `;
+    overlay.addEventListener("click", cerrarModalProyectos);
+    
+    document.body.appendChild(overlay);
+    document.body.appendChild(modal);
   }
-  const nombre = prompt(
-    "Proyectos guardados:" +
-      proyectos.join("") +
-      "Escribe el nombre del proyecto a cargar:"
-  );
+  
+  if (proyectosInfo.length === 0) {
+    modal.innerHTML = `
+      <div style="text-align: center; padding: 20px;">
+        <h3 style="margin-top: 0; color: #666;">No hay proyectos guardados</h3>
+        <p>Guarda primero un proyecto usando el botón "💾 Guardar Proyecto"</p>
+        <button id="btnCerrarModal" style="padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">Cerrar</button>
+      </div>
+    `;
+  } else {
+    // Crear tabla con proyectos ordenados
+    let proyectosHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0; color: #333;">Proyectos Guardados</h3>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <select id="ordenProyectos" style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+            <option value="fecha">📆 Ordenar por fecha (más reciente)</option>
+            <option value="nombre">🔤 Ordenar por nombre</option>
+            <option value="estratos">📊 Ordenar por número de estratos</option>
+          </select>
+          <button id="btnCerrarModal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #666;">×</button>
+        </div>
+      </div>
+      <div style="margin-bottom: 15px; font-size: 14px; color: #666;">
+        ${proyectosInfo.length} proyecto(s) encontrado(s)
+      </div>
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          <thead>
+            <tr style="background: #f5f5f5;">
+              <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Nombre</th>
+              <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Fecha</th>
+              <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Estratos</th>
+              <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Escala</th>
+              <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tablaProyectos">
+    `;
+    
+    // Renderizar proyectos en el orden actual
+    proyectosInfo.forEach((proyecto, index) => {
+      proyectosHTML += `
+        <tr style="border-bottom: 1px solid #eee; ${index % 2 === 0 ? 'background: #f9f9f9;' : ''}" data-nombre="${proyecto.nombre}" data-fecha="${proyecto.fecha}" data-estratos="${proyecto.estratos}">
+          <td style="padding: 10px;">
+            <strong>${proyecto.nombre}</strong>
+          </td>
+          <td style="padding: 10px;">
+            ${proyecto.fechaLegible}
+          </td>
+          <td style="padding: 10px; text-align: center;">${proyecto.estratos}</td>
+          <td style="padding: 10px; text-align: center;">${proyecto.pixelesPorMetro} px/m</td>
+          <td style="padding: 10px;">
+            <button class="btnCargarProyecto" data-nombre="${proyecto.nombre}" 
+                    style="padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px; font-size: 12px;">
+              <i class="fas fa-folder-open"></i> Cargar
+            </button>
+            <button class="btnEliminarProyecto" data-nombre="${proyecto.nombre}" 
+                    style="padding: 6px 12px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+    
+    proyectosHTML += `
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top: 20px; text-align: right;">
+        <button id="btnCerrarModal2" style="padding: 8px 16px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">Cancelar</button>
+      </div>
+    `;
+    
+    modal.innerHTML = proyectosHTML;
+  }
+  
+  // Mostrar modal
+  modal.style.display = "block";
+  document.getElementById("modalOverlay").style.display = "block";
+  
+  // Configurar eventos
+  setTimeout(() => {
+    // Eventos para cargar proyectos
+    document.querySelectorAll(".btnCargarProyecto").forEach(btn => {
+      btn.addEventListener("click", function() {
+        const nombre = this.getAttribute("data-nombre");
+        cargarProyectoDesdeModal(nombre);
+      });
+    });
+    
+    // Eventos para eliminar proyectos
+    document.querySelectorAll(".btnEliminarProyecto").forEach(btn => {
+      btn.addEventListener("click", function() {
+        const nombre = this.getAttribute("data-nombre");
+        eliminarProyecto(nombre);
+      });
+    });
+    
+    // Evento para ordenar proyectos
+    const selectOrden = document.getElementById("ordenProyectos");
+    if (selectOrden) {
+      selectOrden.addEventListener("change", function() {
+        ordenarTablaProyectos(this.value);
+      });
+    }
+    
+    // Eventos para cerrar
+    document.querySelectorAll("#btnCerrarModal, #btnCerrarModal2").forEach(btn => {
+      btn.addEventListener("click", cerrarModalProyectos);
+    });
+  }, 100);
+}
+
+// Función para cerrar el modal
+function cerrarModalProyectos() {
+  const modal = document.getElementById("modalProyectos");
+  const overlay = document.getElementById("modalOverlay");
+  if (modal) modal.style.display = "none";
+  if (overlay) overlay.style.display = "none";
+}
+document.getElementById("btnExportarProyecto").addEventListener("click", function () {
+  const nombre = prompt("Nombre del proyecto (sin extensión):", "MiColumna");
   if (!nombre) return;
+
+  const proyecto = {
+    version: "1.0",
+    pixelesPorMetro: PIXELES_POR_METRO,
+    fechaExportacion: new Date().toISOString(),
+    estratos: estratos.map((e) => ({
+      nombre: e.nombre,
+      alto: e.alto,
+      ancho: e.ancho,
+      color: e.color,
+      trama: e.trama,
+      tamanoTrama: e.tamanoTrama,
+      tipoBordeSuperior: e.tipoBordeSuperior,
+      puntoControl: {
+        // ✅ GUARDAR TODAS LAS PROPIEDADES DEL PUNTO DE CONTROL
+        proporcionX: e.puntoControl.proporcionX,
+        proporcionY: e.puntoControl.proporcionY,
+        posicionManual: e.puntoControl.posicionManual,
+        x: e.puntoControl.x,
+        y: e.puntoControl.y
+      },
+      simbolosDerecha: e.simbolosDerecha || [],
+    })),
+  };
+
+  const blob = new Blob([JSON.stringify(proyecto, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${nombre}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+  
+  mostrarNotificacion(`✅ Proyecto "${nombre}" exportado correctamente`, "success");
+});
+// Función para cargar proyecto desde el modal
+// Función para cargar proyecto desde el modal - VERSIÓN CORREGIDA
+// Función para cargar proyecto desde el modal - VERSIÓN MEJORADA
+function cargarProyectoDesdeModal(nombre) {
   const data = localStorage.getItem(`columna_${nombre}`);
   if (!data) {
-    alert("Proyecto no encontrado.");
+    mostrarNotificacion("❌ Proyecto no encontrado", "error");
     return;
   }
-  const proyecto = JSON.parse(data);
-  PIXELES_POR_METRO = proyecto.pixelesPorMetro;
-  document.getElementById("pixelesPorMetro").value = PIXELES_POR_METRO;
-  estratos = proyecto.estratos.map((e) => {
-    const estrato = new Estrato(
-      e.alto,
-      e.ancho,
-      e.color,
-      e.trama,
-      e.tamanoTrama,
-      e.simbolo,
-      e.tipoBordeSuperior
-    );
-    estrato.nombre = e.nombre || `Estrato ${i + 1}`;
-    estrato.puntoControl.proporcionX = e.puntoControl.proporcionX;
-    estrato.puntoControl.posicionManual = e.puntoControl.posicionManual;
-    estrato.puntoControl.y = (estrato.topY + estrato.bottomY) / 2;
-    estrato.simbolosDerecha = e.simbolosDerecha || []; // ✅ Cargar símbolos de la derecha
-    return estrato;
-  });
-  panelesContainer.innerHTML = "";
-  estratos.forEach((e, i) => crearPanelEstrato(i));
-  dibujar();
-  alert(`Proyecto "${nombre}" cargado!`);
+  
+  try {
+    const proyecto = JSON.parse(data);
+    PIXELES_POR_METRO = proyecto.pixelesPorMetro || 100;
+    document.getElementById("pixelesPorMetro").value = PIXELES_POR_METRO;
+    
+    estratos = proyecto.estratos.map((e, i) => {
+      const estrato = new Estrato(
+        e.alto,
+        e.ancho,
+        e.color,
+        e.trama,
+        e.tamanoTrama,
+        "ninguno",
+        e.tipoBordeSuperior || "recto"
+      );
+      estrato.nombre = e.nombre || `Estrato ${i + 1}`;
+      
+      // RESTAURAR TODAS LAS PROPIEDADES DEL PUNTO DE CONTROL
+      if (e.puntoControl) {
+        estrato.puntoControl.proporcionX = e.puntoControl.proporcionX ?? 1.0;
+        estrato.puntoControl.proporcionY = e.puntoControl.proporcionY ?? 0.5;
+        estrato.puntoControl.posicionManual = e.puntoControl.posicionManual ?? false;
+        estrato.puntoControl.x = e.puntoControl.x ?? (IZQUIERDA_X + estrato.ancho);
+        estrato.puntoControl.y = e.puntoControl.y ?? ((estrato.topY + estrato.bottomY) / 2);
+      }
+      
+      estrato.simbolosDerecha = e.simbolosDerecha || [];
+      return estrato;
+    });
+    
+    panelesContainer.innerHTML = "";
+    estratos.forEach((e, i) => crearPanelEstrato(i));
+    dibujar();
+    
+    // Cerrar modal
+    cerrarModalProyectos();
+    
+    // Mostrar mensaje de éxito
+    mostrarNotificacion(`✅ Proyecto "${nombre}" cargado correctamente`, "success");
+    
+  } catch (error) {
+    console.error("Error al cargar proyecto:", error);
+    mostrarNotificacion("❌ Error al cargar el proyecto", "error");
+  }
+}
+
+// Función para actualizar fecha de modificación
+function actualizarFechaProyecto(nombre) {
+  const data = localStorage.getItem(`columna_${nombre}`);
+  if (data) {
+    try {
+      const proyecto = JSON.parse(data);
+      proyecto.fechaGuardado = new Date().toISOString();
+      proyecto.fechaLegible = new Date().toLocaleString();
+      localStorage.setItem(`columna_${nombre}`, JSON.stringify(proyecto));
+    } catch (e) {
+      console.error("Error al actualizar fecha:", e);
+    }
+  }
+}
+
+// Modificar el evento de guardar para actualizar fecha
+document.getElementById("btnGuardar").addEventListener("click", function () {
+  const nombre = prompt("Nombre del proyecto:", "Proyecto 1");
+  if (!nombre) return;
+
+  const proyecto = {
+    pixelesPorMetro: PIXELES_POR_METRO,
+    fechaGuardado: new Date().toISOString(),
+    fechaLegible: new Date().toLocaleString(),
+    version: "1.0",
+    estratos: estratos.map((e) => ({
+      nombre: e.nombre,
+      alto: e.alto,
+      ancho: e.ancho,
+      color: e.color,
+      trama: e.trama,
+      tamanoTrama: e.tamanoTrama,
+      simbolo: e.simbolo,
+      tipoBordeSuperior: e.tipoBordeSuperior,
+      puntoControl: {
+        proporcionX: e.puntoControl.proporcionX,
+        proporcionY: e.puntoControl.proporcionY,
+        posicionManual: e.puntoControl.posicionManual,
+        x: e.puntoControl.x,
+        y: e.puntoControl.y
+      },
+      simbolosDerecha: e.simbolosDerecha,
+    })),
+  };
+
+  localStorage.setItem(`columna_${nombre}`, JSON.stringify(proyecto));
+  mostrarNotificacion(`✅ Proyecto "${nombre}" guardado correctamente`, "success");
 });
+
+// Función para eliminar proyecto
+function eliminarProyecto(nombre) {
+  if (confirm(`¿Estás seguro de eliminar el proyecto "${nombre}"?`)) {
+    localStorage.removeItem(`columna_${nombre}`);
+    mostrarNotificacion(`🗑️ Proyecto "${nombre}" eliminado`, "info");
+    // Actualizar la lista
+    mostrarModalProyectos();
+  }
+}
+
+// Función auxiliar para mostrar notificaciones
+function mostrarNotificacion(mensaje, tipo = "info") {
+  // Eliminar notificación anterior si existe
+  const notifAnterior = document.querySelector(".notificacion-flotante");
+  if (notifAnterior) notifAnterior.remove();
+  
+  const notificacion = document.createElement("div");
+  notificacion.className = "notificacion-flotante";
+  notificacion.textContent = mensaje;
+  notificacion.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    background: ${tipo === "success" ? "#4CAF50" : tipo === "error" ? "#f44336" : "#2196F3"};
+    color: white;
+    border-radius: 5px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 9999;
+    animation: slideIn 0.3s ease-out;
+    font-family: Arial, sans-serif;
+    max-width: 300px;
+  `;
+  
+  document.body.appendChild(notificacion);
+  
+  // Auto-eliminar después de 3 segundos
+  setTimeout(() => {
+    if (notificacion.parentNode) {
+      notificacion.style.animation = "slideOut 0.3s ease-out";
+      setTimeout(() => {
+        if (notificacion.parentNode) {
+          notificacion.parentNode.removeChild(notificacion);
+        }
+      }, 300);
+    }
+  }, 3000);
+}
+
+// Añadir estilos CSS para las animaciones
+if (!document.querySelector('#estilos-notificacion')) {
+  const estilo = document.createElement('style');
+  estilo.id = 'estilos-notificacion';
+  estilo.textContent = `
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
+    }
+  `;
+  document.head.appendChild(estilo);
+}
 // ================================
 // INTERACCIÓN
 // ================================
@@ -1984,33 +2466,40 @@ canvas.addEventListener("mouseup", function () {
   }
 });
 // ================================
-// ACTUALIZAR ESCALA
+// ESCALA VERTICAL - ACTUALIZACIÓN AUTOMÁTICA
 // ================================
-document
-  .getElementById("btnActualizarEscala")
-  .addEventListener("click", function () {
-    PIXELES_POR_METRO =
-      parseFloat(document.getElementById("pixelesPorMetro").value) || 50;
-    dibujar();
+
+// Reemplaza este código existente:
+// document.getElementById("btnActualizarEscala").addEventListener("click", function () {
+//   PIXELES_POR_METRO = parseFloat(document.getElementById("pixelesPorMetro").value) || 50;
+//   dibujar();
+// });
+
+// Con este código nuevo:
+document.getElementById("pixelesPorMetro").addEventListener("input", function () {
+  PIXELES_POR_METRO = parseFloat(this.value) || 50;
+  dibujar();
+  
+  // Opcional: Actualizar también las etiquetas de metros en los controles de estratos
+  actualizarEtiquetasEscalaVertical();
+});
+
+// Función auxiliar para actualizar todas las etiquetas de metros
+function actualizarEtiquetasEscalaVertical() {
+  document.querySelectorAll('.panel-estrato').forEach((panel, index) => {
+    if (estratos[index]) {
+      const valorMetrosAlto = panel.querySelector('.valor-metros-alto');
+      const valorMetrosAncho = panel.querySelector('.valor-metros-ancho');
+      
+      if (valorMetrosAlto) {
+        valorMetrosAlto.textContent = `(${(estratos[index].alto / PIXELES_POR_METRO).toFixed(1)} m)`;
+      }
+      if (valorMetrosAncho) {
+        valorMetrosAncho.textContent = `(${(estratos[index].ancho / PIXELES_POR_METRO).toFixed(1)} m)`;
+      }
+    }
   });
-document
-  .getElementById("btnActualizarEscalaHorizontal")
-  .addEventListener("click", function () {
-    DESPLAZAMIENTO_ESCALA_HORIZONTAL =
-      parseInt(
-        document.getElementById("desplazamientoEscalaHorizontal").value
-      ) || 0;
-    dibujar();
-  });
-document
-  .getElementById("btnToggleGuías")
-  .addEventListener("click", function () {
-    mostrarGuiasVerticales = !mostrarGuiasVerticales;
-    this.textContent = mostrarGuiasVerticales
-      ? "📏 Ocultar guías verticales"
-      : "📏 Mostrar guías verticales";
-    dibujar();
-  });
+}
 // ================================
 // AÑADIR NUEVO ESTRATO
 // ================================
@@ -2031,6 +2520,278 @@ function agregarEstrato() {
 document
   .getElementById("btnAgregarEstrato")
   .addEventListener("click", agregarEstrato);
+
+// ================================
+// DICCIONARIO DE TRADUCCIÓN DE TRAMAS
+// ================================
+const traduccionesTrama = {
+  "conglomerado_op1": "601 Grava o conglomerado opción 1",
+  "conglomerado_op2": "602 Conglomerado o grava opción 2",
+  "conglomerado_cruzado": "603 Grava o conglomerado con estratificación cruzada",
+  "brecha_op1": "605 Brecha 1ra opción",
+  "brecha_op2": "606 Brecha 2da opción",
+  "arenisca_maciza": "607 Arenisca o arena maciza",
+  "arenisca_estratificada": "608 Arenisca o arena estratificada",
+  "arenisca_cruzada_op1": "609 Arenisca o arena con estratificación cruzada 1ra opción",
+  "arenisca_cruzada_op2": "610 Arenisca o arena con estratificación cruzada 2da opción",
+  "arenisca_ondulada": "611 Arenisca o arena con estratificación ondulada",
+  "arenisca_arcillosa": "612 Arenisca arcillosa o argilizada",
+  "arenisca_calcare": "613 Arenisca calcárea",
+  "arenisca_dolomitica": "614 Arenisca dolomítica",
+  "limolita_arcillosa": "616 Limo, limolita o lutita arcillosa",
+  "limolita_calcare": "617 Limolita calcárea",
+  "limolita_dolomitica": "618 Limolita dolomítica",
+  "lutita_arenosa": "619 Lutita arenosa o limosa",
+  "lutita": "620 Arcilla o lutita",
+  "lutita_chert": "621 Lutita chert o chert pizarroso",
+  "lutita_dolomitica": "622 Lutita dolomítica",
+  "lutita_calcare": "623 Lutita calcárea o mármol",
+  "lutita_carbonosa": "624 Lutita carbonosa",
+  "lutita_petrolifera": "625 Lutita petrolífera",
+  "creta": "626 Creta",
+  "caliza": "627 Caliza",
+  "caliza_clastica": "628 Caliza clástica",
+  "caliza_fosilifera": "629 Caliza fosilífera clástica",
+  "caliza_nodular": "630 Caliza nodular o con estratificación irregular",
+  "caliza_madrigueras": "631 Caliza, rellenos irregulares (madrigueras) de dolomita sacaroidal",
+  "caliza_cruzada": "632 Caliza con estratificación cruzada",
+  "caliza_chert_cruzada": "633 Caliza chert con estratificación cruzada",
+  "caliza_arenosa_chert": "634 Caliza arenosa y con chert, clástica con estratificación cruzada",
+  "caliza_oolitica": "635 Caliza oolítica",
+  "caliza_arenosa": "636 Caliza arenosa",
+  "caliza_limosa": "637 Caliza limosa",
+  "caliza_lutitica": "638 Caliza lutítica o arcillosa",
+  "caliza_chert_op1": "639 Caliza con chert 1ra opción",
+  "caliza_chert_op2": "640 Caliza con chert 2da opción",
+  "caliza_dolomitica": "641 Caliza dolomítica, dolomita calcárea",
+  "dolomita": "642 Dolomita o dolomía",
+  "dolomita_cruzada": "643 Dolomita o dolomía con estratificación cruzada",
+  "dolomita_oolitica": "644 Dolomita o dolomía oolítica",
+  "dolomita_arenosa": "645 Dolomita o dolomía arenosa",
+  "dolomita_limosa": "646 Dolomita o dolomía limosa",
+  "dolomita_lutitica": "647 Dolomita o dolomía arcillosa o lutítica",
+  "dolomita_chert": "648 Dolomita o dolomía con chert",
+  "chert_op1": "649 Chert estratificado 1ra opción",
+  "chert_op2": "650 Chert estratificado 2da opción",
+  "chert_fosilifero": "651 Chert estratificado fosilífero",
+  "roca_fosilifera": "652 Roca fosilífera",
+  "roca_diatomitica": "653 Roca diatomítica o con diatomeas",
+  "subgrauvaca": "654 Subgrauvaca",
+  "subgrauvaca_cruzada": "655 Subgrauvaca con estratificación cruzada",
+  "subgrauvaca_ondulada": "656 Subgrauvaca con estratificación ondulada",
+  "turba": "657 Turba",
+  "carbon": "658 Carbón",
+  "carbon_impuro": "659 Carbón con huesos o impuro",
+  "paleosuelo": "660 Paleosuelo, arcilla basal, underclay",
+  "flintclay": "661 Flintclay o pedernal",
+  "bentonita": "662 Bentonita",
+  "glauconita": "663 Glauconita",
+  "limonita": "664 Limonita",
+  "siderita": "665 Siderita",
+  "fosforita": "666 Roca fosfática nodular, fósforita",
+  "yeso": "667 Yeso",
+  "sal": "668 Sal",
+  "arenisca_limolita": "669 Arenisca y limolita interestratificada",
+  "arenisca_lutita": "670 Arenisca y lutita interestratificada",
+  "arenisca_lutita_ondulada": "671 Arenisca y lutita interestratificada con estratificación ondulada",
+  "lutita_caliza_limosa": "672 Lutita y caliza limosa interestratificada",
+  "lutita_caliza_op1": "673 Lutita y caliza interestratificada 1ra opción",
+  "lutita_caliza_op2": "674 Lutita y caliza interestratificada 2da opción",
+  "lutita_caliza_calcare": "675 Lutita calcárea y caliza interestratificada",
+  "caliza_limosa_lutita_op1": "676 Caliza limosa y lutita interestratificada 1ra opción",
+  "caliza_lutita_op1": "677 Caliza y lutita interestratificada 1ra opción",
+  "caliza_lutita_op2": "678 Caliza y lutita interestratificada 2da opción",
+  "caliza_lutita_op3": "679 Caliza y lutita interestratificada 3ra opción",
+  "caliza_lutita_calcare": "680 Caliza y lutita calcárea interestratificada",
+  "till_op1": "681 Till o diamicto 1ra opción",
+  "till_op2": "682 Till o diamicto 2da opción",
+  "till_op3": "683 Till o diamicto 3ra opción",
+  "loess_op1": "684 Loess 1ra opción",
+  "loess_op2": "685 Loess 2da opción",
+  "loess_op3": "686 Loess 3ra opción",
+  "metamorfismo": "701 Metamorfismo",
+  "cuarcita": "702 Cuarcita",
+  "pizarra": "703 Pizarra",
+  "granito_esquistoso": "704 Granito esquistoso o gneísico",
+  "esquisto": "705 Esquisto",
+  "esquisto_contorsionado": "706 Esquisto contorsionado",
+  "esquisto_gneis": "707 Esquisto y gneis",
+  "gneis": "708 Gneis",
+  "gneis_contorsionado": "709 Gneis contorsionado",
+  "esteatita": "710 Esteatita, talco o serpentinita",
+  "roca_tufitica": "711 Roca tufítica",
+  "toba_cristalina": "712 Toba cristalina",
+  "toba_desvitrificada": "713 Toba desvitrificada",
+  "brecha_volcanica_toba": "714 Brecha volcánica y toba",
+  "brecha_volcanica": "715 Brecha volcánica o aglomerado",
+  "roca_zeolitica": "716 Roca zeolítica",
+  "flujos_basalticos": "717 Flujos basálticos",
+  "granito_op1": "718 Granito 1ra opción",
+  "granito_op2": "719 Granito 2da opción",
+  "roca_ignea_bandeada": "720 Roca ígnea bandeada",
+  "roca_ignea_op1": "721 Roca ígnea 1ra opción",
+  "roca_ignea_op2": "722 Roca ígnea 2da opción",
+  "roca_ignea_op3": "723 Roca ígnea 3ra opción",
+  "roca_ignea_op4": "724 Roca ígnea 4ta",
+  "roca_ignea_op5": "725 Roca ígnea 5ta",
+  "roca_ignea_op6": "726 Roca ígnea 6ta",
+  "roca_ignea_op7": "727 Roca ígnea 7ma",
+  "roca_ignea_op8": "728 Roca ígnea 8va",
+  "roca_porfirica_op1": "729 Roca porfírica 1ra opción",
+  "roca_porfirica_op2": "730 Roca porfírica 2da opción",
+  "vitrofiro": "731 Vitrófiro",
+  "cuarzo": "732 Cuarzo",
+  "SNGM 001 Grava o conglomerado imbricado clastosoportado": "SNGM 001 Grava o conglomerado imbricado clastosoportado",
+  "mineralizacion": "733 Mineralización",
+  "solido": "Color sólido"
+};
+
+// ================================
+// FUNCIÓN DE BÚSQUEDA DE TRAMAS EN TIEMPO REAL
+// ================================
+let timeoutBusqueda = null;
+
+function buscarTramasEnTiempoReal(termino, estratoIndex, inputElement) {
+  // Cancelar búsqueda anterior si aún está pendiente
+  if (timeoutBusqueda) {
+    clearTimeout(timeoutBusqueda);
+  }
+  
+  // ✅ Cerrar todos los demás paneles de búsqueda
+  const panelActual = inputElement.closest('.panel-estrato');
+  cerrarTodosLosResultadosBusqueda(panelActual);
+  
+  // Esperar 300ms después de la última pulsación para buscar
+  timeoutBusqueda = setTimeout(() => {
+    const terminoBusqueda = termino.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    
+    // Encontrar los elementos específicos de ESTE estrato
+    const panel = inputElement.closest('.panel-estrato');
+    const resultadosDiv = panel.querySelector('.resultados-busqueda-trama');
+    const mensajeDiv = panel.querySelector('.mensaje-busqueda');
+    
+    // Limpiar resultados anteriores
+    resultadosDiv.innerHTML = '';
+    
+    if (!terminoBusqueda.trim()) {
+      resultadosDiv.style.display = 'none';
+      mensajeDiv.style.display = 'none';
+      return;
+    }
+    
+    // Buscar en todas las tramas
+    const resultados = [];
+    
+    for (const [clave, valor] of Object.entries(traduccionesTrama)) {
+      const nombreNormalizado = valor.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const claveNormalizada = clave.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      
+      if (nombreNormalizado.includes(terminoBusqueda) || claveNormalizada.includes(terminoBusqueda)) {
+        resultados.push({ clave, nombre: valor });
+      }
+    }
+    
+    // Mostrar resultados
+    if (resultados.length > 0) {
+      resultadosDiv.style.display = 'block';
+      mensajeDiv.style.display = 'none';
+      
+      resultados.forEach(resultado => {
+        const opcion = document.createElement('div');
+        opcion.className = 'opcion-trama';
+        opcion.style.padding = '8px';
+        opcion.style.borderBottom = '1px solid #eee';
+        opcion.style.cursor = 'pointer';
+        opcion.style.fontSize = '12px';
+        opcion.style.display = 'flex';
+        opcion.style.alignItems = 'center';
+        opcion.style.gap = '8px';
+        opcion.style.transition = 'background 0.2s';
+        
+        // Crear una miniatura de la trama
+        const miniatura = document.createElement('div');
+        miniatura.style.width = '30px';
+        miniatura.style.height = '30px';
+        miniatura.style.border = '1px solid #ccc';
+        miniatura.style.borderRadius = '3px';
+        miniatura.style.background = '#f0f0f0';
+        miniatura.style.flexShrink = '0';
+        miniatura.style.overflow = 'hidden';
+        miniatura.style.display = 'flex';
+        miniatura.style.alignItems = 'center';
+        miniatura.style.justifyContent = 'center';
+        
+        if (resultado.clave !== 'solido') {
+          // Intentar mostrar miniatura de la trama SVG
+          const img = tramasSVG[resultado.clave];
+          if (img && img.complete && img.naturalWidth > 0) {
+            const canvasMini = document.createElement('canvas');
+            canvasMini.width = 30;
+            canvasMini.height = 30;
+            const ctxMini = canvasMini.getContext('2d');
+            
+            // Crear patrón de la trama
+            const trama = crearTrama(resultado.clave, '#000000', 15);
+            ctxMini.fillStyle = trama;
+            ctxMini.fillRect(0, 0, 30, 30);
+            
+            miniatura.style.backgroundImage = `url(${canvasMini.toDataURL()})`;
+            miniatura.style.backgroundSize = 'cover';
+          } else {
+            // Si la imagen no está cargada, mostrar placeholder
+            miniatura.innerHTML = '<span style="font-size:10px;color:#666">...</span>';
+          }
+        } else {
+          miniatura.style.background = '#cccccc';
+        }
+        
+        const texto = document.createElement('span');
+        texto.textContent = resultado.nombre;
+        texto.style.flex = '1';
+        texto.style.overflow = 'hidden';
+        texto.style.textOverflow = 'ellipsis';
+        texto.style.whiteSpace = 'nowrap';
+        
+        opcion.appendChild(miniatura);
+        opcion.appendChild(texto);
+        
+        // Evento click para seleccionar la trama
+        opcion.addEventListener('click', () => {
+          const select = panel.querySelector('.select-trama');
+          select.value = resultado.clave;
+          select.dispatchEvent(new Event('change'));
+          
+          // Cerrar resultados
+          resultadosDiv.style.display = 'none';
+          mensajeDiv.style.display = 'none';
+          
+          // Limpiar campo de búsqueda
+          inputElement.value = '';
+          
+          // Actualizar la interfaz
+          const estrato = estratos[estratoIndex];
+          estrato.trama = resultado.clave;
+          dibujar();
+        });
+        
+        opcion.addEventListener('mouseenter', () => {
+          opcion.style.background = '#e3f2fd';
+        });
+        
+        opcion.addEventListener('mouseleave', () => {
+          opcion.style.background = 'white';
+        });
+        
+        resultadosDiv.appendChild(opcion);
+      });
+    } else {
+      resultadosDiv.style.display = 'none';
+      mensajeDiv.textContent = `No se encontraron tramas para "${termino}"`;
+      mensajeDiv.style.display = 'block';
+    }
+  }, 300);
+}
+
 // ================================
 // PANEL DE CONTROL POR ESTRATO (MODIFICADO)
 // ================================
@@ -2039,36 +2800,72 @@ function crearPanelEstrato(index) {
   const panel = document.createElement("div");
   panel.className = "panel-estrato";
   panel.innerHTML = `
-          <div class="panel-encabezado" style="cursor: pointer; padding: 8px; background: #f0f7fc; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-            <strong>${estrato.nombre || "Estrato sin nombre"}</strong>
-            <span class="toggle-icon">▼</span>
-          </div>
+  <div class="panel-encabezado" style="padding: 8px; background: #f0f7fc; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button class="btn-mover-arriba" data-index="${index}" 
+              style="padding: 4px 8px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+        <i class="fas fa-chevron-down"></i>
+      </button>
+      <button class="btn-mover-abajo" data-index="${index}"
+              style="padding: 4px 8px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+        <i class="fas fa-chevron-up"></i>
+      </button>
+      <strong>${estrato.nombre || "Estrato sin nombre"}</strong>
+    </div>
+    <span class="toggle-icon"><i class="fas fa-toggle-on"></i></span>  <!-- ← Ahora con Font Awesome -->
+  </div>
           <div class="panel-contenido" style="display: block;">
           <label>Nombre:</label>
-            <input type="text" class="input-nombre" value="${
+            <input type="text" style="border: 1px solid #4CAF50; width: 100%" class="input-nombre" value="${
               estrato.nombre
             }" placeholder="Nombre del estrato" style="width: 100px; padding: 8px; margin-bottom: 15px; font-size: 16px; border: 2px solid #ddd; border-radius: 4px;">
             <div class="controles">
         <label>Espesor:</label>
-          <input type="range" class="slider-alto" min="0" max="1000" value="${
+          <input type="number" style="border: 1px solid #4CAF50;" class="input-alto" min="0" max="1000" value="${
             estrato.alto
           }" step="1">
-          <span class="valor-metros-alto">${(
+          <span class="valor-metros-alto"> = ${(
             estrato.alto / PIXELES_POR_METRO
-          ).toFixed(1)} m</span>
-          <span class="valor-alto">(${estrato.alto} px)</span>
+          ).toFixed(2)}  m</span> 
+          
+          <div>
           
           <label>Ancho:</label>
-          <input type="range" class="slider-ancho" min="100" max="500" value="${
+          <input type="number" style="border: 1px solid #4CAF50;" class="input-ancho" min="100" max="500" value="${
             estrato.ancho
           }" step="1">
-          <span class="valor-metros-ancho">${(
+          <span class="valor-metros-ancho"  > = ${(
             estrato.ancho / PIXELES_POR_METRO
-          ).toFixed(1)}  m</span>
-          <span class="valor-ancho">(${estrato.ancho} px)</span>
+          ).toFixed(2)}  m</span>
+          
+          </div>
+          <div class="parametros-estrato" >
+          <label>Color:</label>
+          <input type="color" style="border: 1px solid #4CAF50;"class="input-color" value="${estrato.color}">
+          </div>
+          <div>
+          <label>Tamaño de trama:</label>
+          <input type="number" style="border: 1px solid #4CAF50;" class="input-tamano" min="10" max="500" value="${
+            estrato.tamanoTrama
+          }" step="1">
+</div>
+
+
+
+
+
+          <!-- BUSCADOR DE TRAMA EN TIEMPO REAL -->
+          <div class="buscador-trama-container" style="margin-top: 10px; position: relative;">
+            <label>	<i class="fas fa-search"></i> Buscar trama:</label>
+            <input type="text" class="input-buscar-trama" placeholder="Escriba para buscar tramas..." 
+                  style="width: 100%; padding: 8px 10px;  border: 1px solid #4CAF50;  ">
+            <div class="mensaje-busqueda" style="display: none; color: #ff0000ff;  margin-top: 3px; padding: 5px;"></div>
+            <div class="resultados-busqueda-trama" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 4px; max-height: 250px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-top: 2px;"></div>
+          </div>
+          
           <div class="parametros-estrato" style="margin-top: 5px; border-top: 1px solid #ffffff; padding-top: 0px;">
           <label>Trama:</label>
-          <select class="select-trama">
+          <select class="select-trama" style="width: 100%; max-height: 150px; overflow-y: auto;border: 1px solid #4CAF50;">
             <option value="solido" ${
               estrato.trama === "solido" ? "selected" : ""
             }>Color sólido</option>
@@ -2432,18 +3229,12 @@ function crearPanelEstrato(index) {
               estrato.trama === "mineralizacion" ? "selected" : ""
             }>733 Mineralización</option>
           </select>
-          <div class="parametros-estrato" style="margin-top: 5px; border-top: 1px solid #ffffff; padding-top: 10px;">
-          <label>Color:</label>
-          <input type="color" class="input-color" value="${estrato.color}">
-          <label>Tamaño de trama:</label>
-          <input type="range" class="slider-tamano" min="4" max="80" value="${
-            estrato.tamanoTrama
-          }" step="1">
-          <span class="valor-tamano">${estrato.tamanoTrama} px</span>
+          
+          
           <div class="parametros-estrato" style="margin-top: 5px; border-top: 1px solid #ffffff; padding-top: 10px;">
           
           <label>Tipo borde inferior:</label>
-          <select class="select-borde-superior">
+          <select class="select-borde-superior" style="border: 1px solid #4CAF50; width: 100%;">
             <option value="recto" ${
               estrato.tipoBordeSuperior === "recto" ? "selected" : ""
             }>Recto</option>
@@ -2507,7 +3298,7 @@ function crearPanelEstrato(index) {
               <!-- Los símbolos agregados aparecerán aquí dinámicamente -->
             </div>
             <div style="display: flex; gap: 5px; align-items: center; margin-bottom: 10px;">
-              <select class="select-simbolo-derecha" style="flex: 1;">
+              <select class="select-simbolo-derecha" style="border: 1px solid #4CAF50;" style="flex: 1;">
                 <option value="10.2.1 Macrofosiles">10.2.1 Macrofosiles</option>
                 <option value="10.2.2 Invertebrados">10.2.2 Invertebrados</option>
                 <option value="10.2.3 Anélidos">10.2.3 Anélidos</option>
@@ -2594,10 +3385,10 @@ function crearPanelEstrato(index) {
                 <option value="SNGM Tronco en posición de vida">SNGM Tronco en posición de vida</option>
                 <option value="SNGM Vertebrados">SNGM Vertebrados</option>
               </select>
-              <button class="btn-agregar-simbolo-derecha" style="padding: 4px 8px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">➕ Añadir</button>
+              <button class="btn-agregar-simbolo-derecha" style="padding: 4px 8px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;"><i class="fas fa-plus"></iclass></i> </button>
             </div>
           </div>
-          <button class="btn-eliminar" data-index="${index}">🗑️ Eliminar estrato</button>
+          <button class="btn-eliminar" data-index="${index}"><i class="far fa-trash-alt" ></i> Eliminar estrato</button>
         </div>
       `;
   panelesContainer.prepend(panel);
@@ -2605,22 +3396,25 @@ function crearPanelEstrato(index) {
   const selectTrama = panel.querySelector(".select-trama");
   const inputColor = panel.querySelector(".input-color");
   const inputNombre = panel.querySelector(".input-nombre");
-  const sliderTamano = panel.querySelector(".slider-tamano");
+  const sliderTamano = panel.querySelector(".input-tamano");
   const valorTamano = panel.querySelector(".valor-tamano");
-  const sliderAlto = panel.querySelector(".slider-alto");
+  const sliderAlto = panel.querySelector(".input-alto");
   const valorAlto = panel.querySelector(".valor-alto");
   const valorMetrosAlto = panel.querySelector(".valor-metros-alto");
-  const sliderAncho = panel.querySelector(".slider-ancho");
+  const sliderAncho = panel.querySelector(".input-ancho");
   const valorAncho = panel.querySelector(".valor-ancho");
   const valorMetrosAncho = panel.querySelector(".valor-metros-ancho");
   const selectBordeSuperior = panel.querySelector(".select-borde-superior");
   const btnEliminar = panel.querySelector(".btn-eliminar");
+  const inputBuscarTrama = panel.querySelector(".input-buscar-trama");
+  
   // ✅ NUEVO: Manejo de símbolos a la derecha
   const listaSimbolosDerecha = panel.querySelector(".lista-simbolos-derecha");
   const selectSimboloDerecha = panel.querySelector(".select-simbolo-derecha");
   const btnAgregarSimboloDerecha = panel.querySelector(
     ".btn-agregar-simbolo-derecha"
   );
+  
   // Función para renderizar la lista de símbolos en el panel
   const renderizarSimbolosDerecha = () => {
     listaSimbolosDerecha.innerHTML = "";
@@ -2647,8 +3441,10 @@ function crearPanelEstrato(index) {
       listaSimbolosDerecha.appendChild(item);
     });
   };
+  
   // Inicializar la lista
   renderizarSimbolosDerecha();
+  
   // Agregar un nuevo símbolo
   btnAgregarSimboloDerecha.addEventListener("click", function () {
     const tipo = selectSimboloDerecha.value;
@@ -2661,6 +3457,7 @@ function crearPanelEstrato(index) {
     renderizarSimbolosDerecha();
     dibujar(); // Redibujar el canvas para mostrar el nuevo símbolo
   });
+  
   // Eliminar un símbolo (delegación de eventos)
   listaSimbolosDerecha.addEventListener("click", function (e) {
     if (e.target.classList.contains("btn-eliminar-simbolo")) {
@@ -2670,6 +3467,8 @@ function crearPanelEstrato(index) {
       dibujar();
     }
   });
+  
+  // Función para actualizar el estrato
   const actualizar = () => {
     estrato.nombre = inputNombre.value; // <-- ¡Guardar el nombre!
     encabezadoTexto.textContent = estrato.nombre || "Estrato sin nombre"; // ← ¡NUEVA LÍNEA!
@@ -2683,15 +3482,15 @@ function crearPanelEstrato(index) {
     }
     estrato.ancho = parseInt(sliderAncho.value);
     estrato.tipoBordeSuperior = selectBordeSuperior.value;
-    valorTamano.textContent = estrato.tamanoTrama + "px";
-    valorAlto.textContent = estrato.alto + "px";
-    valorMetrosAlto.textContent = `(${(
+    //valorTamano.textContent = estrato.tamanoTrama + " px)";
+   // valorAlto.textContent = estrato.alto + " px)";
+    valorMetrosAlto.textContent = ` = ${(
       estrato.alto / PIXELES_POR_METRO
-    ).toFixed(1)}m)`;
-    valorAncho.textContent = estrato.ancho + "px";
-    valorMetrosAncho.textContent = `(${(
+    ).toFixed(2)} m`;
+   // valorAncho.textContent = estrato.ancho + " px)";
+    valorMetrosAncho.textContent = ` = ${(
       estrato.ancho / PIXELES_POR_METRO
-    ).toFixed(1)}m)`;
+    ).toFixed(2)} m`;
     if (estrato.puntoControl.posicionManual) {
       estrato.puntoControl.x =
         IZQUIERDA_X + estrato.ancho * estrato.puntoControl.proporcionX;
@@ -2702,14 +3501,74 @@ function crearPanelEstrato(index) {
   };
 
   // ✅ Añadir funcionalidad colapsable
-  const encabezado = panel.querySelector(".panel-encabezado");
-  const contenido = panel.querySelector(".panel-contenido");
-  const icono = panel.querySelector(".toggle-icon");
+  // Dentro de crearPanelEstrato:
+const encabezado = panel.querySelector(".panel-encabezado");
+const contenido = panel.querySelector(".panel-contenido");
+const icono = panel.querySelector(".toggle-icon");
 
-  encabezado.addEventListener("click", () => {
-    const isVisible = contenido.style.display === "block";
-    contenido.style.display = isVisible ? "none" : "block";
-    icono.textContent = isVisible ? "▶" : "▼";
+// Inicializar con ícono de toggle-off (cerrado)
+icono.innerHTML = '<i class="fas fa-toggle-on"></i>';
+
+encabezado.addEventListener("click", () => {
+  const isVisible = contenido.style.display === "block";
+  contenido.style.display = isVisible ? "none" : "block";
+  
+  // Cambiar entre toggle-off y toggle-on
+  if (isVisible) {
+    icono.innerHTML = '<i class="fas fa-toggle-off"></i>';
+  } else {
+    icono.innerHTML = '<i class="fas fa-toggle-on"></i>';
+  }
+});
+
+ // ✅ Evento para el buscador de tramas EN TIEMPO REAL
+inputBuscarTrama.addEventListener("input", function() {
+  // Pasar el índice del estrato Y el elemento input actual
+  buscarTramasEnTiempoReal(this.value, index, this);
+});
+
+// Cerrar resultados al hacer clic fuera
+inputBuscarTrama.addEventListener('blur', function() {
+  // Pequeño delay para permitir hacer clic en los resultados
+  setTimeout(() => {
+    const resultadosDiv = this.closest('.panel-estrato').querySelector('.resultados-busqueda-trama');
+    const mensajeDiv = this.closest('.panel-estrato').querySelector('.mensaje-busqueda');
+    resultadosDiv.style.display = 'none';
+    mensajeDiv.style.display = 'none';
+  }, 200);
+});
+
+// Manejar tecla Escape
+inputBuscarTrama.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    const resultadosDiv = this.closest('.panel-estrato').querySelector('.resultados-busqueda-trama');
+    const mensajeDiv = this.closest('.panel-estrato').querySelector('.mensaje-busqueda');
+    resultadosDiv.style.display = 'none';
+    mensajeDiv.style.display = 'none';
+    this.value = "";
+  }
+});
+  
+  // ✅ Evento para limpiar búsqueda al cambiar el select
+  selectTrama.addEventListener("change", function() {
+    inputBuscarTrama.value = "";
+    // Mostrar todas las opciones
+    const opciones = selectTrama.options;
+    for (let i = 0; i < opciones.length; i++) {
+      opciones[i].style.display = '';
+    }
+    actualizar();
+  });
+  
+  // ✅ Evento para limpiar búsqueda con botón (opcional)
+  inputBuscarTrama.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") {
+      this.value = "";
+      const opciones = selectTrama.options;
+      for (let i = 0; i < opciones.length; i++) {
+        opciones[i].style.display = '';
+      }
+    }
   });
 
   selectTrama.addEventListener("change", actualizar);
@@ -2725,7 +3584,29 @@ function crearPanelEstrato(index) {
     estratos.forEach((e, i) => crearPanelEstrato(i));
     dibujar();
   });
+
+// Botones para mover estratos
+  panel.querySelector('.btn-mover-arriba').addEventListener('click', function() {
+    const idx = parseInt(this.dataset.index);
+    if (idx > 0) {
+      // Intercambiar con el estrato superior
+      [estratos[idx], estratos[idx - 1]] = [estratos[idx - 1], estratos[idx]];
+      reconstruirPanelesEstratos();
+      dibujar();
+    }
+  });
+
+  panel.querySelector('.btn-mover-abajo').addEventListener('click', function() {
+    const idx = parseInt(this.dataset.index);
+    if (idx < estratos.length - 1) {
+      // Intercambiar con el estrato inferior
+      [estratos[idx], estratos[idx + 1]] = [estratos[idx + 1], estratos[idx]];
+      reconstruirPanelesEstratos();
+      dibujar();
+    }
+  });
 }
+
 document
   .getElementById("btnAbrirPaleta")
   .addEventListener("click", function () {
@@ -2743,18 +3624,78 @@ dibujar();
 // ================================
 // ALTERNAR DISEÑO: CENTRADO vs LATERAL
 // ================================
-let modoLateral = false;
-document
-  .getElementById("btnToggleLayout")
-  .addEventListener("click", function () {
-    modoLateral = !modoLateral;
-    if (modoLateral) {
-      document.body.classList.add("layout-lateral");
-      this.textContent = "↔️ Volver a diseño centrado";
-    } else {
-      document.body.classList.remove("layout-lateral");
-      this.textContent = "↔️ Cambiar a diseño lateral";
-    }
+//let modoLateral = false;
+//document
+  //.getElementById("btnToggleLayout")
+  //.addEventListener("click", function () {
+    //modoLateral = !modoLateral;
+    //if (modoLateral) {
+     // document.body.classList.add("layout-lateral");
+      //this.textContent = "↔️ Volver a diseño centrado";
+    //} else {
+     // document.body.classList.remove("layout-lateral");
+      //this.textContent = "↔️ Cambiar a diseño lateral";
+    //}
     // Redibujar para ajustar canvas
-    setTimeout(dibujar, 100);
+    //setTimeout(dibujar, 100);
+  //});
+
+  function cerrarTodosLosResultadosBusqueda(excluirPanel = null) {
+  // Cerrar todos los paneles de resultados excepto el que se está usando
+  document.querySelectorAll('.panel-estrato').forEach(panel => {
+    if (excluirPanel && panel === excluirPanel) return;
+    
+    const resultadosDiv = panel.querySelector('.resultados-busqueda-trama');
+    const mensajeDiv = panel.querySelector('.mensaje-busqueda');
+    if (resultadosDiv) {
+      resultadosDiv.style.display = 'none';
+    }
+    if (mensajeDiv) {
+      mensajeDiv.style.display = 'none';
+    }
   });
+}
+
+// ================================
+// FUNCIÓN PARA RECONSTRUIR PANELES (NUEVA)
+// ================================
+function reconstruirPanelesEstratos() {
+  // Limpiar contenedor
+  panelesContainer.innerHTML = "";
+  
+  // Recrear todos los paneles en el orden actual
+  estratos.forEach((estrato, index) => {
+    crearPanelEstrato(index);
+  });
+}
+
+// ================================
+// MODIFICAR LOS EVENT LISTENERS EN crearPanelEstrato
+// ================================
+// Dentro de la función crearPanelEstrato, reemplaza el código de los botones:
+
+// Botones para mover estratos - VERSIÓN CORREGIDA
+panel.querySelector('.btn-mover-arriba').addEventListener('click', function(e) {
+  e.stopPropagation(); // Evitar que colapse/expanda el panel
+  
+  const idx = parseInt(this.dataset.index);
+  if (idx > 0) {
+    // Intercambiar con el estrato superior
+    [estratos[idx], estratos[idx - 1]] = [estratos[idx - 1], estratos[idx]];
+    reconstruirPanelesEstratos();
+    dibujar();
+  }
+});
+
+panel.querySelector('.btn-mover-abajo').addEventListener('click', function(e) {
+  e.stopPropagation(); // Evitar que colapse/expanda el panel
+  
+  const idx = parseInt(this.dataset.index);
+  if (idx < estratos.length - 1) {
+    // Intercambiar con el estrato inferior
+    [estratos[idx], estratos[idx + 1]] = [estratos[idx + 1], estratos[idx]];
+    reconstruirPanelesEstratos();
+    dibujar();
+  }
+});
+
