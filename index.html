@@ -4,82 +4,210 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Columna Estratigráfica — SERNAGEOMIN</title>
+  <title>🪨 Editor de Columna Estratigráfica SERNAGEOMIN</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="estilos.css"> <!-- 👈 Tu nuevo archivo CSS -->
+  <!-- Agrega Font Awesome para iconos -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="estilos.css">
 </head>
 
 <body>
-  <h2>Editor de Columna Estratigráfica SERNAGEOMIN</h2>
-  <div class="instrucciones">
-    Personaliza estratos, elige tipo de borde inferior, añade símbolos, exporta o guarda tu proyecto.<br>
-    Código desarrollado por Felipe Carrasco Rieloff — felipe.carrasco@sernageomin.cl
-  </div>
-
-  <div class="acciones-proyecto">
-    <div class="dropdown">
-      <button class="exportar">💾 Exportar</button>
-      <div class="dropdown-content">
-        <div class="calidad-seccion">Exageración:</div>
-        <div style="padding: 0 16px;">
-          <select id="selectCalidadExportacion" style="width: 100%; padding: 6px; font-size: 13px;">
-            <option value="1">1x (Normal)</option>
-            <option value="2" selected>2x (Alta)</option>
-            <option value="3">3x</option>
-            <option value="4">4x (Máxima)</option>
-          </select>
-        </div>
-        <hr>
-        <button id="btnExportarPNG">🖼️ PNG</button>
-        <button id="btnExportarJPG">🌅 JPG</button>
-        <button id="btnExportarSVG">🎨 SVG</button>
-        <button id="btnExportarPDF">📄 PDF</button>
-      </div>
+  <!-- HEADER MEJORADO -->
+  <header class="main-header">
+    <h1> Editor de Columna Estratigráfica SERNAGEOMIN <i class="fas fa-layer-group"></i></h1>
+    <div class="instrucciones">
+      <i class="fas fa-info-circle"></i> Personaliza estratos, elige tipo de borde inferior, añade símbolos, exporta o
+      guarda tu proyecto.<br>
+      <small><i class="fas fa-code"></i> Código desarrollado por Felipe Carrasco Rieloff —
+        felipe.carrasco@sernageomin.cl</small>
     </div>
-    <button class="guardar" id="btnGuardar">💾 Guardar Proyecto</button>
-    <button class="cargar" id="btnCargar">📂 Cargar Proyecto</button>
-    <button class="guardar" id="btnExportarProyecto">📤 Exportar Proyecto (.json)</button>
-    <button class="cargar" id="btnImportarProyecto">📥 Importar Proyecto (.json)</button>
-    <input type="file" id="inputImportarProyecto" accept=".json" style="display: none;">
-    <button id="btnToggleLayout">↔️ Cambiar diseño</button>
-    <button id="btnMostrarPopup">🖼️ Ver resultado final</button>
-  </div>
+  </header>
 
-  <!-- Popup y overlay FUERA de acciones-proyecto -->
+  <div class="layout-container">
+
+    <!-- COLUMNA IZQUIERDA: CONTROLES -->
+    <div class="left-panel">
+
+
+
+
+
+      <!-- PANELES DE ESTRATOS -->
+      <div class="estratos-section">
+        <h2><i class="fas fa-layer-group"></i> Configuración de Estratos</h2>
+        <div class="Nuevo-estrato">
+          <button id="btnAgregarEstrato" class="btn btn-primary" data-tooltip="Añade un nuevo estrato"><i
+              class="fas fa-plus"></iclass></i> Añadir Estrato</button>
+          <br></br>
+        </div>
+        <div id="panelesEstratos"></div>
+      </div>
+      <br></br>
+      <!-- CONTROLES PRINCIPALES -->
+      <div class="control-card">
+        <h3><i class="fas fa-sliders-h"></i> Configuraciones generales y herramientas</h3>
+
+        <!-- BOTONES DE ACCIÓN -->
+
+
+
+        <!-- CONTROLES DE ESCALA -->
+
+        <div class="scale-controls">
+
+          <Label title="Si es >500 la escala se mostrará en cm"><i class="fas fa-ruler-combined"></i> Configuración de
+            Escala (en pixeles)</label>
+          <div class="scale-inputs">
+            <div class="input-group">
+              <label title="Si es >500 la escala se mostrará en cm"><i class="fas fa-ruler-vertical"></i>
+                Vertical:</label>
+              <input title="Si es >500 la escala se mostrará en cm" type="number" id="pixelesPorMetro" value="100"
+                min="10" max="2000" step="1">
+
+            </div>
+            <div class="input-group">
+              <label><i class="fas fa-ruler-horizontal"></i> Horizontal:</label>
+              <input type="number" id="desplazamientoEscalaHorizontal" value="0" min="-100" max="300" step="10"
+                class="input">
+
+            </div>
+          </div>
+          <div class="botones-grid">
+
+            <label title="Se muestran guías verticales para granulometría. Estas no quedarán en el resultado final">
+              <input type="checkbox" id="toggleGuias" value="first_checkbox" style="height: 20px;" />
+              Mostrar guías verticales
+            </label>
+
+            <!-- PALETA DE COLORES -->
+            <button id="btnAbrirPaleta" class="btn-purple"
+              title="Se abre en una nueva ventana una paleta de colores que se puede usar con el cuentagotas del color de la trama">
+              <i class="fas fa-palette"></i> Paleta de Colores
+            </button>
+
+
+
+          </div>
+        </div>
+
+
+
+      </div>
+
+
+
+      <!-- PANEL DE EXPORTACIÓN -->
+      <div class="control-card export-panel">
+        <h3><i class="fas fa-image"></i> Exportar imagen</h3>
+
+
+
+        <div class="export-buttons">
+          <button id="btnExportarPNG" class="btn-success">
+            <i class="fas fa-file-image"></i> PNG
+          </button>
+          <button id="btnExportarJPG" class="btn-success">
+            <i class="fas fa-file-image"></i> JPG
+          </button>
+          <button id="btnExportarSVG" class="btn-success">
+            <i class="fas fa-file-code"></i> SVG
+          </button>
+          <button id="btnExportarPDF" class="btn-success">
+            <i class="fas fa-file-pdf"></i> PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- GESTIÓN DE PROYECTOS -->
+      <div class="control-card project-panel">
+
+
+        <h3><i class="fas fa-project-diagram"></i> Exportar proyecto</h3>
+        <p style="color: white;"><i class="fa fa-info-circle"></i> Esta opción es la reecomendada, permite exportar el
+          archivo del proyecto en tu equipo. Luego puedes importar o enviar el archivo para trabajar en otro momento o
+          en otro equipo.</p>
+        <div class="project-import-export">
+          <button id="btnExportarProyecto" class="btn-success">
+            <i class="fas fa-file-export"></i> Exportar Proyecto (.json)
+          </button>
+          <button id="btnImportarProyecto" class="btn-info">
+            <i class="fas fa-file-import"></i> Importar Proyecto (.json)
+          </button>
+          <input type="file" id="inputImportarProyecto" accept=".json" style="display: none;">
+        </div>
+
+        <p style="color: white;"><i class="fa fa-info-circle"></i> Esta opción permite trabajar con varias columnas en
+          paralelo, pero al cerrar el navegador se borrá toda la información. </p>
+        <div class="project-buttons">
+          <button id="btnGuardar" class="btn-success">
+            <i class="fas fa-save" style="color: white;"></i> Guardar temporalmente
+          </button>
+          <button id="btnCargar" class="btn-info">
+            <i class="fas fa-folder-open"></i> Cargar proyecto temporal
+          </button>
+        </div>
+
+      </div>
+
+
+
+    </div> <!-- Fin columna izquierda -->
+
+    <!-- COLUMNA DERECHA: CANVAS -->
+    <div class="right-panel">
+      <div class="canvas-container">
+        <h3><i class="fas fa-edit"></i> Vista de la Columna</h3>
+        <div id="canvasScrollContainer">
+          <canvas id="canvas" width="900"></canvas>
+        </div>
+
+
+
+        <div class="canvas-hint">
+          <i class="fas fa-mouse-pointer"></i> Haz clic y arrastra los puntos rojos para modificar la forma de los
+          estratos
+        </div>
+        <button id="btnMostrarPopup" class="btn-ver-resultado">
+          <i class="fas fa-eye"></i>
+          Ver resultado final
+        </button>
+      </div>
+
+    </div>
+
+  </div> <!-- Fin layout-container -->
+
+
+
+  <!-- POPUP MEJORADO -->
   <div class="overlay" id="overlay"></div>
   <div class="popup" id="popup">
-    <span class="close-btn" onclick="cerrarPopup()">&times;</span>
-    <h2>Vista Completa de la Columna Estratigráfica</h2>
-    <canvas id="popupCanvas"
-      style="border: 1px solid #ddd; background: white; display: block; margin: 20px auto;"></canvas>
-    <button onclick="cerrarPopup()" style="margin-top: 16px;">Cerrar</button>
+    <div class="popup-header">
+      <h3><i class="fas fa-search"></i> Vista Completa de la Columna Estratigráfica</h3>
+      <span class="close-btn" onclick="cerrarPopup()">&times;</span>
+    </div>
+    <canvas id="popupCanvas"></canvas>
+    <div class="popup-footer">
+      <button onclick="cerrarPopup()" class="btn-danger">
+        <i class="fas fa-times"></i> Cerrar
+      </button>
+      <div class="popup-info">
+        <i class="fas fa-info-circle"></i> Esta vista no muestra los puntos de control. Puede hacer clic derecho y
+        copiar o guardar la imagen. Para editar, cierre esta
+        ventana.
+      </div>
+    </div>
   </div>
 
-  <div class="controles-globales">
-    <label>Escala: 1 m = </label>
-    <input type="number" id="pixelesPorMetro" value="100" min="10" max="200" step="1"> px
-    <button id="btnActualizarEscala">Actualizar Escala</button>
-    <button id="btnToggleGuías">📏 Mostrar guías verticales</button>
-    <label style="margin-left: 20px;">Escala horiz. X:</label>
-    <input type="number" id="desplazamientoEscalaHorizontal" value="0" min="-300" max="300" step="10"> px
-    <button id="btnActualizarEscalaHorizontal">Mover</button>
-    <button id="btnAbrirPaleta">🎨 Abrir Paleta de Colores</button>
-  </div>
+  <!-- FOOTER -->
+  <footer>
+    <p><i class="fas fa-code"></i> Editor de Columna Estratigráfica v1.0 — SERNAGEOMIN</p>
+    <p><i class="fas fa-graduation-cap"></i> Herramienta para ciencias de la Tierra</p>
+  </footer>
 
-  <button id="btnAgregarEstrato" style="background: var(--color-primario); color: white;">+ Añadir Nuevo
-    Estrato</button>
-
-  <div id="panelesEstratos"></div>
-
-  <div class="canvas-container" id="canvasContainer">
-    <canvas id="canvas" width="900" height="800"></canvas>
-  </div>
-
-  <!-- Librería jsPDF (solo UNA vez) -->
+  <!-- Librería jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="app.js" defer></script>
-
-  </div>
 
 </body>
 
