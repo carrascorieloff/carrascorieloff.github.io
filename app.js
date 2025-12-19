@@ -3616,6 +3616,16 @@ document
       "width=600,height=700,scrollbars=yes,resizable=yes"
     );
   });
+
+document
+  .getElementById("btnAbrirPaletaCrono")
+  .addEventListener("click", function () {
+    window.open(
+      "https://stratigraphy.org/chart/?language=es",
+      "PaletaColores",
+      "width=600,height=700,scrollbars=yes,resizable=yes"
+    );
+  });
 // ================================
 // INICIAR
 // ================================
@@ -3698,4 +3708,5 @@ panel.querySelector('.btn-mover-abajo').addEventListener('click', function(e) {
     dibujar();
   }
 });
+
 
