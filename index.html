@@ -1,3 +1,4 @@
+<!--02-01-26 -->
 <!DOCTYPE html>
 <html lang="es">
 
@@ -93,6 +94,10 @@
                 <input type="checkbox" id="invertirEscala" style="height: 20px;">
                 Invertir escala (como pozo)
               </label>
+              <!-- Botón para mostrar la leyenda - Agrégalo donde prefieras en los controles -->
+<button id="btnMostrarLeyendaTramas" class="btn-info" style="width: 100%;">
+  <i class="fas fa-book"></i> Abrir Leyenda
+</button>
             </div>
           </div>
 
@@ -106,7 +111,7 @@
               title="Se abre en una nueva ventana una paleta de colores que se puede usar con el cuentagotas del color de la trama">
               <i class="fas fa-palette"></i> Paleta de colores carta cronoestratigráfica
             </button>
-
+            
 
           </div>
         </div>
@@ -166,6 +171,7 @@
           <button id="btnCargar" class="btn-info">
             <i class="fas fa-folder-open"></i> Cargar proyecto temporal
           </button>
+          
         </div>
 
       </div>
@@ -192,12 +198,32 @@
           <i class="fas fa-eye"></i>
           Ver resultado final
         </button>
+
+        
       </div>
 
     </div>
 
   </div> <!-- Fin layout-container -->
 
+    <!-- Popup para la leyenda -->
+<div id="leyendaPopup" class="popup">
+  <div class="popup-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+      <h2 style="margin: 0;">📋 Leyenda Completa</h2>
+      <button id="cerrarLeyenda" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">×</button>
+    </div>
+    
+    <!-- Contenedor de la leyenda se llenará dinámicamente -->
+    <div id="contenidoLeyenda"></div>
+    
+    <div style="margin-top: 20px; text-align: center;">
+      <button id="btnCerrarLeyenda" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="leyendaOverlay" class="overlay"></div>
 
 
   <!-- POPUP MEJORADO -->
@@ -217,9 +243,37 @@
         copiar o guardar la imagen. Para editar, cierre esta
         ventana.
       </div>
+      
     </div>
+    
   </div>
 
+<!-- Popup para la leyenda de tramas (Canvas simplificado) -->
+<div id="leyendaTramasPopup" class="popup">
+  <div class="popup-content" style="max-width: 800px; max-height: 85vh; overflow-y: auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+      <h3 style="margin: 0;"><i class="fas fa-layer-group"></i> Leyenda de Tramas</h3>
+      <button id="cerrarLeyendaTramas" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">×</button>
+    </div>
+    
+    <div id="contenidoLeyendaCanvas" style="margin-top: 10px; padding: 10px; background: #f8f8f8; border-radius: 6px;">
+      <canvas id="canvasLeyenda" width="750" height="400"></canvas>
+    </div>
+    
+    <div style="margin-top: 20px; text-align: center;">
+      <button id="btnCerrarLeyendaTramas" style="padding: 8px 20px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        <i class="fas fa-times"></i> Cerrar
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="leyendaTramasOverlay" class="overlay"></div>
+
+
+
+
+  
   <!-- FOOTER -->
   <footer>
     <p><i class="fas fa-code"></i> Editor de Columna Estratigráfica v1.0 — SERNAGEOMIN</p>
@@ -230,8 +284,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="app.js" defer></script>
 
+
+
 </body>
 
 </html>
-
-
