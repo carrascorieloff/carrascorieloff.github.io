@@ -1,4 +1,4 @@
-//RRRRRRRRRRRRRRRRRRR
+//02-01-26
 
 // Función para mostrar el pop-up y copiar el contenido del canvas
 // Función para mostrar el pop-up y copiar el contenido del canvas
@@ -3219,7 +3219,7 @@ function crearPanelEstrato(index) {
           </select>
           <!-- ✅ NUEVO: Panel para Símbolos a la Derecha -->
           <div class="contenedor-simbolos-derecha" style="margin-top: 15px; border-top: 1px solid #ccc; padding-top: 15px;">
-            <h4 style="margin: 1px 0 5px 0; font-size: 14px;">Símbolos a la Derecha</h4>
+            <h4 style="margin: 1px 0 5px 0; font-size: 14px;">Fósiles</h4>
             <div class="lista-simbolos-derecha">
               <!-- Los símbolos agregados aparecerán aquí dinámicamente -->
             </div>
@@ -3580,11 +3580,433 @@ document
       "width=600,height=700,scrollbars=yes,resizable=yes"
     );
   });
+
+ // ================================
+// FUNCIONES PARA LA LEYENDA DE TRAMAS Y FÓSILES (CANVAS SIMPLIFICADO)
+// ================================
+
+let canvasLeyenda = null;
+let ctxLeyenda = null;
+
+// Diccionario de traducciones para símbolos (fósiles)
+const traduccionesSimbolos = {
+  "10.2.1 Macrofosiles": "Macrofósiles",
+  "10.2.2 Invertebrados": "Invertebrados",
+  "10.2.3 Anélidos": "Anélidos",
+  "10.2.4 Artrópodos": "Artrópodos",
+  "10.2.5 Aracnidos": "Arácnidos",
+  "10.2.6 Crustáceos": "Crustáceos",
+  "10.2.7 Insectos": "Insectos",
+  "10.2.8 Trilobites": "Trilobites",
+  "10.2.9 Braquiopodos": "Braquiópodos",
+  "10.2.10 Briozoos": "Briozoos",
+  "10.2.11 Cnidarios": "Cnidarios",
+  "10.2.12 Corales": "Corales",
+  "10.2.13 Estromatoporoideos": "Estromatoporoideos",
+  "10.2.14 Equinodermos": "Equinodermos",
+  "10.2.15 Crinoideos": "Crinoideos",
+  "10.2.16 Equinoideos": "Equinoideos",
+  "10.2.17 Graptolitos": "Graptolitos",
+  "10.2.18 moluscos": "Moluscos",
+  "10.2.19 Cefalópodos": "Cefalópodos",
+  "10.2.20 Amonoideos": "Amonoideos",
+  "10.2.21 Belemnoideos": "Belemnoideos",
+  "10.2.22 Nautiloideos": "Nautiloideos",
+  "10.2.23 Gastrópodos": "Gastrópodos",
+  "10.2.24 Pelecípodos": "Pelecípodos",
+  "10.2.25 Esponjas": "Esponjas",
+  "10.2.26 Vertebrados": "Vertebrados",
+  "10.2.27 Anfibios": "Anfibios",
+  "10.2.28 Peces": "Peces",
+  "10.2.29 Mamíferos": "Mamíferos",
+  "10.2.30 Reptiles": "Reptiles",
+  "10.2.31 Plantas": "Plantas",
+  "10.2.32 Hojas": "Hojas",
+  "10.2.33 Raíces": "Raíces",
+  "10.2.34 Madera": "Madera",
+  "10.2.35 Algas": "Algas",
+  "10.2.36 Coníferas": "Coníferas",
+  "10.2.37 Helechos": "Helechos",
+  "10.2.38 Plantas o árboles con flores": "Plantas o árboles con flores",
+  "10.2.39 Estromatolitos": "Estromatolitos",
+  "10.2.40 Fungi": "Fungi",
+  "10.2.41 Trazas fósiles": "Trazas fósiles",
+  "10.2.42 Madrigueras": "Madrigueras",
+  "10.2.43 Coprolitos": "Coprolitos",
+  "10.2.44 Huellas": "Huellas",
+  "10.2.45 Microfósiles": "Microfósiles",
+  "10.2.46 Conodontos": "Conodontos",
+  "10.2.47 Diatomeas": "Diatomeas",
+  "10.2.48 Foraminíferos": "Foraminíferos",
+  "10.2.49 Grandes foraminíferos o fusulínidos": "Grandes foraminíferos o fusulínidos",
+  "10.2.50 Foraminíferos bentónicos, pequeños": "Foraminíferos bentónicos, pequeños",
+  "10.2.51 Foraminíferos planctónicos, pequeños": "Foraminíferos planctónicos, pequeños",
+  "10.2.52 Nanofósiles": "Nanofósiles",
+  "10.2.53 Ostrácodos": "Ostrácodos",
+  "10.2.54 Palinomorfos": "Palinomorfos",
+  "10.2.55 Acritarcos": "Acritarcos",
+  "10.2.56 Quitinozoos": "Quitinozoos",
+  "10.2.57 Dinoflagelados": "Dinoflagelados",
+  "10.2.58 Polen o esporas": "Polen o esporas",
+  "10.2.59 Radiolarios": "Radiolarios",
+  "10.2.60 Silicoflagelados": "Silicoflagelados",
+  "10.2.61 Espículas": "Espículas",
+  "concreciones": "Concreciones",
+  "meteorizacion_esferoidal": "Meteorización esferoidal",
+  "raices": "Raíces",
+  "SNGM Algas calcáreas": "Algas calcáreas",
+  "SNGM Bioturbación": "Bioturbación",
+  "SNGM Diatomeas": "Diatomeas",
+  "SNGM Fauna fósil indiferenciada": "Fauna fósil indiferenciada",
+  "SNGM Flora fósil": "Flora fósil",
+  "SNGM Foraminíferos": "Foraminíferos",
+  "SNGM Invertebrados marinos": "Invertebrados marinos",
+  "SNGM Mamíferos marinos": "Mamíferos marinos",
+  "SNGM Microfauna sin especificar": "Microfauna sin especificar",
+  "SNGM Peces, esqueletos y escamas": "Peces, esqueletos y escamas",
+  "SNGM Polen y o esporas": "Polen o esporas",
+  "SNGM Radiolarios": "Radiolarios",
+  "SNGM Raiz en posición de vida": "Raíz en posición de vida",
+  "SNGM Rastros y pisadas 1": "Rastros y pisadas (1)",
+  "SNGM Rastros y pisadas 2": "Rastros y pisadas (2)",
+  "SNGM Restos de tronco": "Restos de tronco",
+  "SNGM Trazas fósiles 2": "Trazas fósiles (2)",
+  "SNGM Trazas fósiles 3": "Trazas fósiles (3)",
+  "SNGM Trazas fósiles": "Trazas fósiles",
+  "SNGM Tronco en posición de vida": "Tronco en posición de vida",
+  "SNGM Vertebrados": "Vertebrados"
+};
+
+// Inicializar canvas de leyenda
+function inicializarCanvasLeyenda() {
+  canvasLeyenda = document.getElementById('canvasLeyenda');
+  if (!canvasLeyenda) return;
+  
+  ctxLeyenda = canvasLeyenda.getContext('2d');
+}
+
+// Función para dibujar una trama en el canvas de leyenda
+function dibujarTramaLeyenda(tramaClave, nombreTrama, x, y, anchoRect, altoRect) {
+  if (!ctxLeyenda) return;
+  
+  const tamanoTrama = altoRect; // Tamaño del cuadrado de trama
+  
+  // Dibujar rectángulo de la trama (izquierda)
+  if (tramaClave !== 'solido') {
+    const trama = crearTrama(tramaClave, '#333333', 15);
+    ctxLeyenda.save();
+    ctxLeyenda.translate(x + 10, y + 10);
+    ctxLeyenda.fillStyle = trama;
+    ctxLeyenda.fillRect(0, 0, tamanoTrama * 1.3, tamanoTrama);
+    ctxLeyenda.restore();
+  } else {
+    // Para trama sólida, mostrar un cuadrado gris
+    ctxLeyenda.fillStyle = '#cccccc';
+    ctxLeyenda.fillRect(x + 10, y + 10, tamanoTrama * 1.3, tamanoTrama);
+  }
+  
+  // Borde del cuadrado de trama
+  ctxLeyenda.strokeStyle = '#333';
+  ctxLeyenda.lineWidth = 1;
+  ctxLeyenda.strokeRect(x + 10, y + 10, tamanoTrama * 1.3, tamanoTrama);
+  
+  // Dibujar nombre de la trama (derecha)
+  ctxLeyenda.fillStyle = '#333';
+  ctxLeyenda.font = '14px Arial';
+  ctxLeyenda.textAlign = 'left';
+  ctxLeyenda.textBaseline = 'middle';
+  
+  // Posición para el texto (al lado derecho del cuadrado)
+  const textoX = x + tamanoTrama + 35;
+  const textoY = y + (altoRect / 2);
+  
+  // Dibujar nombre de la trama
+  ctxLeyenda.fillText(nombreTrama, textoX, textoY);
+}
+
+// Función para dibujar un símbolo (fósil) en el canvas de leyenda
+function dibujarSimboloLeyenda(simboloClave, nombreSimbolo, x, y, anchoRect, altoRect) {
+  if (!ctxLeyenda) return;
+  
+  const tamanoSimbolo = altoRect - 10; // Tamaño para el símbolo
+  
+  // Intentar dibujar el símbolo SVG
+  const img = simbolosSVG[simboloClave];
+  if (img && img.complete && img.naturalWidth > 0) {
+    try {
+      // Dibujar el símbolo SVG
+      ctxLeyenda.drawImage(
+        img,
+        x + 10,
+        y + 5,
+        tamanoSimbolo,
+        tamanoSimbolo
+      );
+    } catch (error) {
+      // Fallback: dibujar un círculo con la inicial
+      ctxLeyenda.fillStyle = '#4CAF50';
+      ctxLeyenda.beginPath();
+      ctxLeyenda.arc(x + 10 + tamanoSimbolo/2, y + 5 + tamanoSimbolo/2, tamanoSimbolo/2, 0, Math.PI * 2);
+      ctxLeyenda.fill();
+      ctxLeyenda.fillStyle = 'white';
+      ctxLeyenda.font = 'bold 12px Arial';
+      ctxLeyenda.textAlign = 'center';
+      ctxLeyenda.textBaseline = 'middle';
+      ctxLeyenda.fillText(nombreSimbolo.charAt(0), x + 10 + tamanoSimbolo/2, y + 5 + tamanoSimbolo/2);
+    }
+  } else {
+    // Fallback: dibujar un círculo con la inicial
+    ctxLeyenda.fillStyle = '#4CAF50';
+    ctxLeyenda.beginPath();
+    ctxLeyenda.arc(x + 10 + tamanoSimbolo/2, y + 5 + tamanoSimbolo/2, tamanoSimbolo/2, 0, Math.PI * 2);
+    ctxLeyenda.fill();
+    ctxLeyenda.fillStyle = 'white';
+    ctxLeyenda.font = 'bold 12px Arial';
+    ctxLeyenda.textAlign = 'center';
+    ctxLeyenda.textBaseline = 'middle';
+    ctxLeyenda.fillText(nombreSimbolo.charAt(0), x + 10 + tamanoSimbolo/2, y + 5 + tamanoSimbolo/2);
+  }
+  
+  // Borde del símbolo
+
+  
+  // Dibujar nombre del símbolo (derecha)
+  ctxLeyenda.fillStyle = '#333';
+  ctxLeyenda.font = '14px Arial';
+  ctxLeyenda.textAlign = 'left';
+  ctxLeyenda.textBaseline = 'middle';
+  
+  // Posición para el texto
+  const textoX = x + tamanoSimbolo + 25;
+  const textoY = y + (altoRect / 2);
+  
+  // Dibujar nombre del símbolo
+  ctxLeyenda.fillText(nombreSimbolo, textoX, textoY);
+}
+
+// Función para dibujar todas las tramas y fósiles en el canvas de leyenda
+function dibujarTodasLasTramasYFosiles() {
+  if (!ctxLeyenda || !canvasLeyenda) return;
+  
+  // Limpiar canvas
+  ctxLeyenda.clearRect(0, 0, canvasLeyenda.width, canvasLeyenda.height);
+  
+  // Configuración de diseño
+  const margen = 20;
+  const anchoRect = canvasLeyenda.width - (margen * 2);
+  const altoRect = 50;
+  const espacioEntre = 10;
+  const espacioSeccion = 30; // Espacio entre secciones
+  
+  let y = margen;
+  
+  // Obtener todas las tramas únicas usadas
+  const tramasUnicas = new Set();
+  const nombresTramas = {};
+  
+  estratos.forEach(estrato => {
+    const trama = estrato.trama;
+    if (trama) {
+      tramasUnicas.add(trama);
+      nombresTramas[trama] = traduccionesTrama[trama] || trama;
+    }
+  });
+  
+  // Obtener todos los símbolos (fósiles) únicos usados
+  const simbolosUnicos = new Set();
+  
+  estratos.forEach(estrato => {
+    if (estrato.simbolosDerecha && estrato.simbolosDerecha.length > 0) {
+      estrato.simbolosDerecha.forEach(simbolo => {
+        if (simbolo.tipo && simbolo.tipo !== "ninguno") {
+          simbolosUnicos.add(simbolo.tipo);
+        }
+      });
+    }
+  });
+  
+  // Dibujar título de TRAMAS si hay tramas
+  if (tramasUnicas.size > 0) {
+    ctxLeyenda.fillStyle = '#333';
+    ctxLeyenda.font = 'bold 16px Arial';
+    ctxLeyenda.textAlign = 'left';
+    ctxLeyenda.fillText('Tramas', margen, y);
+    y += 25;
+    
+    // Convertir Set a Array y ordenar alfabéticamente
+    const tramasArray = Array.from(tramasUnicas).sort((a, b) => {
+      const nombreA = nombresTramas[a] || a;
+      const nombreB = nombresTramas[b] || b;
+      return nombreA.localeCompare(nombreB);
+    });
+    
+    // Dibujar cada trama
+    tramasArray.forEach((tramaClave, index) => {
+      // Verificar si hay espacio en el canvas
+      if (y + altoRect > canvasLeyenda.height - margen) {
+        // Ajustar altura del canvas
+        canvasLeyenda.height = y + margen + 100;
+      }
+      
+      dibujarTramaLeyenda(
+        tramaClave,
+        nombresTramas[tramaClave] || tramaClave,
+        margen,
+        y,
+        anchoRect,
+        altoRect
+      );
+      
+      y += altoRect + espacioEntre;
+    });
+    
+    y += espacioSeccion; // Espacio entre secciones
+  }
+  
+  // Dibujar título de FÓSILES Y SÍMBOLOS si hay símbolos
+  if (simbolosUnicos.size > 0) {
+    ctxLeyenda.fillStyle = '#333';
+    ctxLeyenda.font = 'bold 16px Arial';
+    ctxLeyenda.textAlign = 'left';
+    ctxLeyenda.fillText('Fósiles', margen, y);
+    y += 25;
+    
+    // Convertir Set a Array y ordenar alfabéticamente
+    const simbolosArray = Array.from(simbolosUnicos).sort((a, b) => {
+      const nombreA = traduccionesSimbolos[a] || a;
+      const nombreB = traduccionesSimbolos[b] || b;
+      return nombreA.localeCompare(nombreB);
+    });
+    
+    // Dibujar cada símbolo
+    simbolosArray.forEach((simboloClave, index) => {
+      // Verificar si hay espacio en el canvas
+      if (y + altoRect > canvasLeyenda.height - margen) {
+        // Ajustar altura del canvas
+        canvasLeyenda.height = y + margen + 100;
+      }
+      
+      dibujarSimboloLeyenda(
+        simboloClave,
+        traduccionesSimbolos[simboloClave] || simboloClave,
+        margen,
+        y,
+        anchoRect,
+        altoRect
+      );
+      
+      y += altoRect + espacioEntre;
+    });
+  }
+  
+  // Si no hay ni tramas ni símbolos, mostrar mensaje
+  if (tramasUnicas.size === 0 && simbolosUnicos.size === 0) {
+    ctxLeyenda.fillStyle = '#666';
+    ctxLeyenda.font = '16px Arial';
+    ctxLeyenda.textAlign = 'center';
+    ctxLeyenda.textBaseline = 'middle';
+    ctxLeyenda.fillText('No se han usado tramas ni símbolos en los estratos', 
+                         canvasLeyenda.width / 2, 
+                         canvasLeyenda.height / 2);
+  }
+  
+  // Ajustar la altura del canvas según el contenido
+  const alturaNecesaria = y + margen;
+  if (alturaNecesaria > canvasLeyenda.height) {
+    canvasLeyenda.height = alturaNecesaria;
+    // Redibujar con la nueva altura
+    dibujarTodasLasTramasYFosiles();
+  }
+}
+
+// Función para mostrar la leyenda de tramas y fósiles
+function mostrarLeyendaTramasYFosiles() {
+  const popup = document.getElementById("leyendaTramasPopup");
+  const overlay = document.getElementById("leyendaTramasOverlay");
+  
+  // Inicializar canvas si no está inicializado
+  inicializarCanvasLeyenda();
+  
+  // Dibujar las tramas y fósiles
+  dibujarTodasLasTramasYFosiles();
+  
+  // Mostrar popup
+  popup.classList.add('active');
+  overlay.classList.add('active');
+}
+
+// Función para cerrar la leyenda de tramas
+function cerrarLeyendaTramas() {
+  const popup = document.getElementById("leyendaTramasPopup");
+  const overlay = document.getElementById("leyendaTramasOverlay");
+  
+  popup.classList.remove('active');
+  overlay.classList.remove('active');
+}
+
+// Inicializar eventos de la leyenda
+function inicializarEventosLeyenda() {
+  // Botón para mostrar leyenda
+  const btnMostrarLeyenda = document.getElementById('btnMostrarLeyendaTramas');
+  if (btnMostrarLeyenda) {
+    btnMostrarLeyenda.addEventListener('click', mostrarLeyendaTramasYFosiles);
+  } else {
+    // Crear botón si no existe
+    const controles = document.querySelector('.control-card');
+    if (controles) {
+      const nuevoBoton = document.createElement('button');
+      nuevoBoton.id = 'btnMostrarLeyendaTramas';
+      nuevoBoton.className = 'btn-info';
+      nuevoBoton.style.cssText = 'margin-bottom: 10px; width: 100%;';
+      nuevoBoton.innerHTML = '<i class="fas fa-book"></i> Mostrar Leyenda de Tramas y Fósiles';
+      controles.insertBefore(nuevoBoton, controles.firstChild);
+      nuevoBoton.addEventListener('click', mostrarLeyendaTramasYFosiles);
+    }
+  }
+  
+  // Eventos de cierre
+  const cerrarBtn = document.getElementById('cerrarLeyendaTramas');
+  if (cerrarBtn) {
+    cerrarBtn.addEventListener('click', cerrarLeyendaTramas);
+  }
+  
+  const cerrarBtn2 = document.getElementById('btnCerrarLeyendaTramas');
+  if (cerrarBtn2) {
+    cerrarBtn2.addEventListener('click', cerrarLeyendaTramas);
+  }
+  
+  const overlay = document.getElementById('leyendaTramasOverlay');
+  if (overlay) {
+    overlay.addEventListener('click', cerrarLeyendaTramas);
+  }
+  
+  // Cerrar con tecla Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      const popup = document.getElementById("leyendaTramasPopup");
+      if (popup && popup.classList.contains('active')) {
+        cerrarLeyendaTramas();
+      }
+    }
+  });
+  
+  // Redibujar cuando cambie el tamaño de la ventana
+  window.addEventListener('resize', function() {
+    if (canvasLeyenda && document.getElementById("leyendaTramasPopup").classList.contains('active')) {
+      inicializarCanvasLeyenda();
+      dibujarTodasLasTramasYFosiles();
+    }
+  });
+}
+
 // ================================
 // INICIAR
 // ================================
 agregarEstrato();
 dibujar();
+
+// Inicializar eventos de leyenda cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', inicializarEventosLeyenda);
 // ================================
 // ALTERNAR DISEÑO: CENTRADO vs LATERAL
 // ================================
