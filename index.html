@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Columna Estratigráfica</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Barra de herramientas principal -->
+        <div class="toolbar">
+            <div class="toolbar-group">
+                <button id="btnAgregarEstrato" class="btn-primary">
+                    <i class="fas fa-plus"></i> Agregar Estrato
+                </button>
+                <button id="btnGuardar" class="btn-success">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+                <button id="btnCargar" class="btn-info">
+                    <i class="fas fa-folder-open"></i> Cargar Proyecto
+                </button>
+                <button id="btnExportarProyecto" class="btn-info">
+                    <i class="fas fa-file-export"></i> Exportar
+                </button>
+                <button id="btnImportarProyecto" class="btn-warning">
+                    <i class="fas fa-file-import"></i> Importar
+                </button>
+                <input type="file" id="inputImportarProyecto" accept=".json" style="display:none">
+            </div>
+            <div class="toolbar-group">
+                <button id="btnMostrarLeyendaTramas" class="btn-secondary">
+                    <i class="fas fa-book"></i> Leyenda
+                </button>
+                <button id="btnAbrirPaleta" class="btn-secondary">
+                    <i class="fas fa-palette"></i> Paleta
+                </button>
+                <button id="btnAbrirPaletaCrono" class="btn-secondary">
+                    <i class="fas fa-clock"></i> Crono
+                </button>
+            </div>
+            
+            <div class="toolbar-group">
+                <button id="btnExportarPNG" class="btn-secondary">
+                    <i class="fas fa-image"></i> PNG
+                </button>
+                <button id="btnExportarJPG" class="btn-secondary">
+                    <i class="fas fa-image"></i> JPG
+                </button>
+                <button id="btnExportarSVG" class="btn-secondary">
+                    <i class="fas fa-file-code"></i> SVG
+                </button>
+                <button id="btnExportarPDF" class="btn-secondary">
+                    <i class="fas fa-file-pdf"></i> PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- Controles de escala -->
+        <!-- En la sección de controles de escala -->
+<div class="controls-bar">
+    <div class="control-group">
+        <label>
+            <i class="fas fa-ruler-vertical"></i> px/m:
+            <input type="number" id="pixelesPorMetro" value="100" min="10" max="1000">
+        </label>
+        <label>
+            <i class="fas fa-arrows-alt-h"></i> Desplazamiento:
+            <input type="number" id="desplazamientoEscalaHorizontal" value="0" min="-200" max="200">
+        </label>
+    </div>
+    <div class="control-group">
+        <label>
+            <i class="fas fa-arrows-alt-v"></i> Separación de etiquetas:
+            <input type="number" id="separacionMinima" value="100" min="10" max="500" step="10">
+        </label>
+        <label>
+            <input type="checkbox" id="toggleGuias"> Guías
+        </label>
+        <label>
+            <input type="checkbox" id="invertirEscala"> Invertir Escala
+        </label>
+        <!-- ✅ Botón para invertir el orden de los estratos -->
+        <button id="btnInvertirOrden" class="btn-warning" style="padding: 4px 12px;">
+            <i class="fas fa-arrows-alt-v"></i> Invertir Orden
+        </button>
+    </div>
+    <!-- ✅ NUEVO: Control de tamaño de tramas -->
+    <div class="control-group" style="border-left: 1px solid #ddd; padding-left: 16px;">
+        <label style="display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-vector-square"></i> Trama:
+            <input type="range" id="tamanoTramaGlobal" 
+                   min="10" max="200" value="100" 
+                   style="width: 120px; margin: 0 4px;">
+            <span id="tamanoTramaLabel" style="min-width: 35px; font-size: 13px;">100</span>
+            <span style="font-size: 11px; color: #666;">px</span>
+        </label>
+        
+    </div>
+</div>
+
+        <!-- Contenido principal -->
+        <div class="main-content">
+            <!-- Panel de estratos -->
+            <div class="panels-container" id="panelesEstratos">
+                <!-- Los paneles se generan dinámicamente -->
+            </div>
+
+            <!-- Canvas para la columna -->
+            <div class="canvas-container" id="canvasContainer">
+                <canvas id="canvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Popup para leyenda -->
+    <div id="leyendaTramasOverlay" class="overlay"></div>
+    <div id="leyendaTramasPopup" class="popup">
+        <div class="popup-header">
+            <h3>Leyenda de Tramas y Fósiles</h3>
+            <button id="cerrarLeyendaTramas" class="btn-close">&times;</button>
+        </div>
+        <div class="popup-body">
+            <canvas id="canvasLeyenda"></canvas>
+        </div>
+        <div class="popup-footer">
+            <button id="btnCerrarLeyendaTramas" class="btn-secondary">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Modal para proyectos -->
+    <div id="modalOverlay" class="overlay"></div>
+    <div id="modalProyectos" class="modal">
+        <!-- Contenido dinámico -->
+    </div>
+
+    <!-- jsPDF desde CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
