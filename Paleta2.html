@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Paleta Munsell</title>
+    <style>
+      :root {
+        --gap: 12px;
+        --card-radius: 8px;
+        --card-padding: 10px;
+        --bg: #f6f7f9;
+        --text: #1b1b1b;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial;
+        background: var(--bg);
+        color: var(--text);
+      }
+      header {
+        padding: 16px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        background: white;
+      }
+      h1 {
+        margin: 0;
+        font-size: 1.1rem;
+      }
+      h2 {
+        margin-top: 32px;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+      .categoria {
+        display: flex;
+        align-items: flex-start; /* alinea arriba */
+        gap: 20px; /* espacio entre título y paleta */
+        margin-bottom: 30px;
+      }
+
+      .categoria h2 {
+        min-width: 150px; /* ancho fijo para alinear */
+        margin: 0; /* quita margen por defecto */
+      }
+      .controls {
+        margin-left: auto;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      input[type="search"] {
+        padding: 8px 10px;
+        border-radius: 6px;
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        min-width: 220px;
+      }
+      button {
+        padding: 8px 10px;
+        border-radius: 6px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        background: white;
+        cursor: pointer;
+      }
+      main {
+        padding: 16px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: var(--gap);
+        margin-top: 12px;
+      }
+      .card {
+        position: relative;
+        background: white;
+        border-radius: var(--card-radius);
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(16, 24, 40, 0.04);
+        cursor: pointer;
+        border: 1px solid rgba(0, 0, 0, 0.04);
+      }
+      .card:hover .meta {
+        transform: translateY(-200px);
+      }
+      .swatch {
+        height: 200px;
+        flex-shrink: 0;
+        display: block;
+      }
+      .meta {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -100%; /* oculta fuera de la card */
+        background: rgba(255, 255, 255, 0.95);
+        padding: var(--card-padding);
+        font-size: 12px;
+        line-height: 1.25;
+        transform: translateY(100px); /* parte de abajo */
+        transition: transform 0.3s ease;
+      }
+      .meta .munsell {
+        font-weight: 600;
+        margin-bottom: 6px;
+        display: block;
+      }
+      .meta .name {
+        color: #444;
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+      }
+      .meta .codes {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .pill {
+        background: rgba(0, 0, 0, 0.05);
+        padding: 4px 8px;
+        border-radius: 3px;
+        font-size: 12px;
+      }
+      .hint {
+        font-size: 12px;
+        color: #666;
+        margin-top: 8px;
+      }
+      footer {
+        padding: 12px;
+        text-align: center;
+        color: #666;
+        font-size: 12px;
+      }
+      .empty {
+        text-align: center;
+        padding: 24px;
+        color: #666;
+      }
+      @media (max-width: 520px) {
+        .swatch {
+          height: 72px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Paleta Munsell</h1>
+      <div class="controls">
+        <input
+          id="search"
+          type="search"
+          placeholder="Buscar por Munsell o nombre..."
+        />
+        <button id="download">Descargar CSV</button>
+        <button id="copyAll">Copiar todos los HEX</button>
+      </div>
+    </header>
+
+    <main>
+      <div id="count" class="hint">Cargando colores…</div>
+      <div id="categorias"></div>
+      <div id="empty" class="empty" style="display: none">
+        No se encontraron colores.
+      </div>
+    </main>
+
+    <footer>
+      Haz click en una ficha para copiar su valor HEX. Filtra por Munsell o
+      nombre.
+    </footer>
+
+    <script>
+      // === DATOS DE EJEMPLO (puedes pegar tu tabla entera como antes) ===
+      const raw = `Munsel\tNombre\tR\tG\tB
+      N1\tNegro\t28\t28\t28
+      N2\tNegro grisáceo\t49\t49\t49
+      N3\tGris oscuro\t72\t72\t72
+      N4\tGris oscuro medio\t97\t97\t97
+      N5\tGris medio\t122\t122\t122
+      N6\tGris claro medio\t149\t149\t149
+      N7\tGris claro\t175\t175\t175
+      N8\tGris muy claro\t202\t202\t202
+      N9\tBlanco\t229\t229\t229
+      5B 5/1\tGris azuloso medio\t112\t121\t123
+      5B 7/1\tGris verdoso claro\t171\t181\t180
+      5B 9/1\tBlanco azuloso\t223\t232\t230
+      5B 6/2\tAzul grisáceo pálido\t130\t152\t158
+      5B 8/2\tAzul muy pálido\t184\t206\t211
+      5PB 3/2\tAzul grisáceo oscuro\t64\t72\t87
+      5PB 5/2\tAzul grisáceo\t116\t123\t136
+      5PB 7/2\tAzul pálido\t168\t175\t187
+      5P 2/2\tMorado oscuro\t56\t45\t61
+      5P 4/2\tMorado grisáceo\t103\t93\t109
+      5P 6/2\tMorado pálido\t153\t146\t159
+      5RP 2/2\tMorado oscuro\t63\t43\t53
+      5RP 4/2\tMorado rojizo grisáceo\t112\t91\t99
+      5RP 6/2\tMorado rojizo pálido\t162\t144\t150
+      5RP 8/2\tRosado pálido\t212\t198\t202
+      5R 2/2\tRojo negruzco\t66\t43\t45
+      5R 4/2\tRojo grisáceo\t115\t91\t90
+      5R 6/2\tRojo pálido \t165\t144\t142
+      5R 8/2\tRosado grisáceo \t216\t198\t196
+      10R 2/2\tPardo rojizo muy oscuro\t65\t44\t41
+      10R 4/2\tRojo grisáceo\t116\t91\t86
+      10R 6/2\tRojo pálido\t167\t144\t137
+      10R 8/2\tRosado anaranjado grisáceo\t217\t198\t192
+      5YR 2/1\tNegro parduzco\t44\t23\t15
+      5YR 4/1\tGris parduzco\t107\t94\t87
+      5YR 6/1\tGris parduzco claro\t157\t144\t138
+      5YR 8/1\tGris rosáceo\t215\t200\t190
+      5YR 2/2\tPardo oscuro\t64\t45\t37
+      5YR 3/2\tPardo grisáceo\t89\t67\t57
+      5YR 5/2\tPardo pálido\t140\t
+      5YR 7/2\tRosado anaranjado grisáceo\t193\t171\t157
+      10YR 2/2\tPardo amarillento muy oscuro\t60\t47\t33
+      10YR 4/2\tPardo amarillento oscuro\t111\t94\t75
+      10YR 6/2\tPardo amarillento pálido\t163\t146\t126
+      10YR 8/2\tNaranjo muy pálido\t216\t200\t177
+      5Y 2/1\tNegro oliva\t35\t27\t7
+      5Y 4/1\tGris oliva\t101\t96\t85
+      5Y 6/1\tGris oliva claro\t152\t147\t134
+      5Y 8/1\tGris amarillento\t211\t205\t189
+      5Y 3/2\tGris oliva\t79\t71\t52
+      5Y 5/2\tGris oliva claro\t130\t122\t98
+      5Y 7/2\tGris amarillento\t183\t175\t147
+      10Υ 4/2\tOliva grisáceo\t99\t98\t74
+      10Υ 6/2\tOliva pálido\t152\t150\t122
+      10Υ 8/2\tAmarillo verdoso pálido\t205\t203\t171
+      5GY 2/1\tNegro verdoso\t50\t52\t45
+      5GY 4/1\tGris verdoso oscuro\t95\t98\t86
+      5GY 6/1\tGris verdoso\t151\t152\t138
+      5GY 8/1\tGris verdoso claro \t203\t204\t186
+      5GY 3/2\tVerde oliva grisáceo\t68\t74\t56
+      5GY 5/2\tVerde amarillento grisáceo\t118\t126\t102
+      5GY 7/2\tVerde amarillento grisáceo\t171\t178\t150
+      10GY 3/2\tVerde amarillento muy oscuro\t62\t76\t62
+      10GY 5/2\tVerde grisáceo\t110\t127\t109
+      10GY 7/2\tVerde amarillento pálido\t161\t180\t158
+      5G 2/1\tNegro verdoso\t45\t51\t46
+      5G 4/1\tGris verdoso oscuro \t91\t102\t93
+      5G 6/1\tGris verdoso\t141\t151\t142
+      5G 8/1\tGris verdoso claro\t194\t206\t195
+      5G 3/2\tVerde muy oscuro\t58\t76\t67
+      5G 5/2\tVerde grisáceo\t105\t128\t116
+      5G 7/2\tVerde pálido\t154\t181\t166
+      10G 4/2\tVerde grisáceo\t78\t102\t94
+      10G 6/2\tVerde pálido\t102\t160\t143
+      10G 8/2\tVerde muy pálido\t177\t209\t197
+      5BG 3/2\tVerde azuloso oscuro\t53\t76\t75
+      5BG 5/2\tVerde azuloso grisáceo\t105\t127\t123
+      5BG 7/2\tVerde azuloso pálido\t151\t181\t176
+      5R 3/4\tRojo oscuro\t106\t59\t59
+      5R 5/4\tRojo medio\t156\t111\t109
+      5R 7/4\tRosado medio\t209\t164\t161
+      10R 3/4\tPardo rojizo oscuro\t105\t60\t51
+      10R 5/4\tPardo rojizo pálido\t157\t112\t99
+      10R 7/4\tRosado anaranjado medio\t210\t165\t150
+      5YR 3/4\tPardo medio\t100\t63\t42
+      5YR 4/4\tPardo medio\t128\t88\t63
+      5YR 6/4\tPardo claro\t181\t140\t114
+      5YR 8/4\tRosado anaranjado\t235\t194\t164
+      10YR 5/4\tPardo amarillento medio\t148\t117\t79
+      10YR 7/4\tNaranjo grisáceo\t201\t170\t128
+      5Y 4/4\tPardo oliva medio\t111\t96\t48
+      5Y 6/4\tAmarillo oliva claro\t163\t148\t97
+      5Y 8/4\tPardo grisáceo\t216\t202\t146
+      10Υ 5/4\tOliva claro\t127\t125\t72
+      10Υ 7/4\tAmarillo verdoso medio\t181\t178\t120
+      5GY 7/4\tVerde amarillento medio\t167\t181\t127
+      10GY 4/4 \tVerde amarillento oscuro\t72\t105\t71
+      10GY 6/4\tVerde amarillento medio\t122\t158\t119
+      5G 7/4\tVerde claro\t134\t186\t159
+      5YR 5/6\tPardo claro\t166\t110\t70
+      10YR 6/6\tNaranjo amarillento oscuro\t184\t141\t80
+      10YR 8/6 \tNaranjo amarillento pálido\t238\t195\t130
+      5R 2/6\tRojo medio\t88\t29\t40
+      5R 4/6\tRojo muy oscuro\t144\t78\t76
+      5R 6/6\tRojo claro\t171\t104\t101
+      10R 4/6\tPardo rojizo medio\t144\t79\t62
+      10R 6/6\tNaranjo rojizo medio\t198\t133\t112
+      5Y 5/6\tPardo oliva claro\t143\t121\t43
+      5Y 7/6\tAmarillo medio\t196\t174\t94
+      10Y 6/6\tAmarillo grisáceo oscuro\t156\t152\t67
+      5G 5/6\tVerde medio\t58\t137\t104
+      5G 6/6\tVerde brillante\t84\t164\t128
+      5BG 4/6\tVerde azuloso medio\t10\t113\t103
+      5BG 6/6\tVerde azuloso claro\t63\t164\t155
+      5B 5/6\tAzul medio\t44\t133\t155
+      5B 7/6\tAzul claro\t104\t186\t207`;
+
+      // === CATEGORÍAS DEFINIDAS MANUALMENTE ===
+      const categoriasMap = {
+        N: ["N1", "N2", "N3", "N4", "N5", "N6", "N7", "N8", "N9"],
+        "5B": ["5B 5/1", "5B 7/1", "5B 9/1"],
+        "5B Azules": ["5B 6/2", "5B 8/2"],
+        "5PB": ["5PB 3/2", "5PB 5/2", "5PB 7/2"],
+        "5P": ["5P 2/2", "5P 4/2", "5P 6/2"],
+        "5RP": ["5RP 2/2", "5RP 4/2", "5RP 6/2", "5RP 8/2"],
+        "5R": ["5R 2/2", "5R 4/2", "5R 6/2", "5R 8/2"],
+        "10R": ["10R 2/2", "10R 4/2", "10R 6/2", "10R 8/2"],
+        "5YR": ["5YR 2/1", "5YR 4/1", "5YR 6/1", "5YR 8/1"],
+        "10YR": ["10YR 2/2", "10YR 4/2", "10YR 6/2", "10YR 8/2"],
+        "5Y": ["5Y 2/1", "5Y 4/1", "5Y 6/1", "5Y 8/1"],
+        "5Y2": ["5Y 3/2", "5Y 5/2", "5Y 7/2"],
+        "10Y": ["10Y 4/2", "10Y 6/2", "10Y 8/2"],
+        "5GY": ["5GY 2/1", "5GY 4/1", "5GY 6/1", "5GY 8/1"],
+        "5GY2": ["5GY 3/2", "5GY 5/2", "5GY 7/2"],
+        "10GY": ["10GY 3/2", "10GY 5/2", "10GY 7/2"],
+        "5G": ["5G 2/1", "5G 4/1", "5G 6/1", "5G 8/1"],
+        "5G2": ["5G 3/2", "5G 5/2", "5G 7/2"],
+        "10G": ["10G 4/2", "10G 6/2", "10G 8/2"],
+        "5BG": ["5BG 3/2", "5BG 5/2", "5BG 7/2"],
+        "5R2": ["5R 3/4", "5R 5/4", "5R 7/4"],
+        "10R2": ["10R 3/4", "10R 5/4", "10R 7/4"],
+        "5YR2": ["5YR 3/4", "5YR 5/4", "5YR 7/4"],
+        "10YR2": ["10YR 5/4", "10YR 7/4"],
+        "5Y3": ["5Y 4/4", "5Y 6/4", "5Y 8/4"],
+        "10Y3": ["10Y 5/4", "10Y 7/4"],
+        "5GY3": ["5GY 7/4"],
+        "10GY3": ["5GY 4/4", "5GY 6/4"],
+        "5G3": ["5G 7/4"],
+        "5YR3": ["5YR 5/6"],
+        "10YR3": ["10YR 6/6", "10YR 8/6"],
+        "5R3": ["5R 2/6", "5R 4/6", "5R 6/6"],
+        "10R3": ["10R 4/6", "10R 6/6"],
+        "5Y4": ["5Y 5/6", "5Y 7/6"],
+        "10Y4": ["10Y 6/6"],
+        "5G4": ["5G 5/6", "5G 6/6"],
+        "5BG2": ["5BG 4/6", "5BG 6/6"],
+        "5B2": ["5B 5/6", "5B 7/6"],
+      };
+
+      // Utilidades
+      const clamp = (v) => Math.max(0, Math.min(255, Math.round(v)));
+      const toHex = (r, g, b) =>
+        "#" +
+        [r, g, b]
+          .map((n) => clamp(n).toString(16).padStart(2, "0"))
+          .join("")
+          .toUpperCase();
+
+      function parseTable(text) {
+        const lines = text
+          .split(/\r?\n/)
+          .map((l) => l.trim())
+          .filter(Boolean);
+        if (lines[0].toLowerCase().startsWith("munsel")) lines.shift();
+        const rows = [];
+        for (const line of lines) {
+          let cols = line
+            .split(/\t/)
+            .map((c) => c.trim())
+            .filter(Boolean);
+          if (cols.length >= 4) {
+            const munsell = cols[0];
+            const r = parseInt(cols[cols.length - 3], 10);
+            const g = parseInt(cols[cols.length - 2], 10);
+            const b = parseInt(cols[cols.length - 1], 10);
+            const name = cols.slice(1, cols.length - 3).join(" ");
+            if (!isNaN(r) && !isNaN(g) && !isNaN(b)) {
+              rows.push({ munsell, name, r, g, b, hex: toHex(r, g, b) });
+            }
+          }
+        }
+        return rows;
+      }
+
+      const data = parseTable(raw);
+      const categoriasDiv = document.getElementById("categorias");
+      const count = document.getElementById("count");
+      const empty = document.getElementById("empty");
+      const search = document.getElementById("search");
+
+      function renderCategorias(list) {
+        categoriasDiv.innerHTML = "";
+        let total = 0;
+
+        for (const [cat, codigos] of Object.entries(categoriasMap)) {
+          const items = list.filter((d) => codigos.includes(d.munsell));
+          if (!items.length) continue;
+
+          // const titulo = document.createElement("h2");
+          // titulo.textContent = cat;
+          // categoriasDiv.appendChild(titulo);
+
+          const grid = document.createElement("div");
+          grid.className = "grid";
+
+          for (const item of items) {
+            total++;
+            const card = document.createElement("div");
+            card.className = "card";
+            card.title = `${item.name}`;
+
+            const sw = document.createElement("div");
+            sw.className = "swatch";
+            sw.style.background = item.hex;
+
+            const meta = document.createElement("div");
+            meta.className = "meta";
+            meta.innerHTML = `
+                    <span class="munsell">${escapeHtml(item.munsell)}</span>
+                    <span class="name">${escapeHtml(item.name)}</span>
+                    <div class="codes">
+                      <span class="pill">RGB: ${item.r}, ${item.g}, ${
+              item.b
+            }</span>
+                      <span class="pill">HEX: ${item.hex}</span>
+                    </div>
+                  `;
+
+            card.appendChild(sw);
+            card.appendChild(meta);
+
+            card.addEventListener("click", async () => {
+              try {
+                await navigator.clipboard.writeText(item.name);
+                showToast(`Copiado ${item.name}`);
+              } catch {
+                showToast("No se pudo copiar");
+              }
+            });
+
+            grid.appendChild(card);
+          }
+          categoriasDiv.appendChild(grid);
+        }
+
+        count.textContent = `${total} colores`;
+        empty.style.display = total ? "none" : "block";
+      }
+
+      // Toast
+      let toastTimer;
+      function showToast(msg) {
+        let el = document.getElementById("__toast__");
+        if (!el) {
+          el = document.createElement("div");
+          el.id = "__toast__";
+          Object.assign(el.style, {
+            position: "fixed",
+            right: "16px",
+            bottom: "16px",
+            background: "#111",
+            color: "#fff",
+            padding: "10px 14px",
+            borderRadius: "8px",
+            zIndex: 9999,
+            boxShadow: "0 6px 18px rgba(16,24,40,0.2)",
+            fontSize: "13px",
+          });
+          document.body.appendChild(el);
+        }
+        el.textContent = msg;
+        el.style.opacity = "1";
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          el.style.opacity = "0";
+        }, 2200);
+      }
+
+      // Helpers
+      function escapeHtml(s) {
+        return (s + "").replace(/[&<>"']/g, (m) => {
+          return {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;",
+          }[m];
+        });
+      }
+
+      // Filtro por búsqueda
+      function applyFilter() {
+        const q = search.value.trim().toLowerCase();
+        if (!q) return renderCategorias(data);
+        const filtered = data.filter(
+          (d) =>
+            d.munsell.toLowerCase().includes(q) ||
+            d.name.toLowerCase().includes(q) ||
+            d.hex.toLowerCase().includes(q)
+        );
+        renderCategorias(filtered);
+      }
+
+      // Init
+      renderCategorias(data);
+      search.addEventListener("input", applyFilter);
+    </script>
+  </body>
+</html>
